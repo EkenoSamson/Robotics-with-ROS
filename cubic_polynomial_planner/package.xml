@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>cubic_polynomial_planner</name>
+  <version>0.0.0</version>
+  <description>The cubic_polynomial_planner package</description>
+
+  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>highlevel_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+
+</package>
