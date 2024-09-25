@@ -1,114 +1,107 @@
-#include <ros/ros.h>
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Twist.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <tf/tf.h>
-#include <highlevel_msgs/MoveTo.h>
-#include <Eigen/Dense>
+// pose_planner.cpp
+// created by Ekeno
 
-class PosePlanner
+#include "pose_planner.h"
+using namespace std;
+
+PosePlanner::PosePlanner()
 {
-public:
-    PosePlanner(ros::NodeHandle& nh) : nh_(nh), rate_(500.0)
-    {
-        // Subscribe to the current pose of the robot
-        pose_sub_ = nh_.subscribe("/firefly/ground_truth/pose", 10, &PosePlanner::poseCallback, this);
-        
-        // Advertise the service
-        service_ = nh_.advertiseService("pose_planner/move_to", &PosePlanner::moveToCallback, this);
-        
-        // Publisher for the pose and twist commands
-        pose_pub_ = nh_.advertise<geometry_msgs::Pose>("/firefly/command/pose", 10);
-        twist_pub_ = nh_.advertise<geometry_msgs::Twist>("/firefly/command/twist", 10);
-    }
+    target_time_ = 1.0; 								// Set to a valid initial value
+    target_pos_ = Eigen::Vector3d::Zero();
+    init_pos_ = Eigen::Vector3d::Zero();
+    current_pos_ = Eigen::Vector3d::Zero();
+    orient_quat_ = Eigen::Quaterniond::Identity();
 
-    void spin()
-    {
-        while (ros::ok())
-        {
-            ros::spinOnce();
-            rate_.sleep();
-        }
-    }
+    service_ = nh_.advertiseService("pose_planner/move_to", &PosePlanner::move_callback, this);
+    pose_pub_ = nh_.advertise<geometry_msgs::Pose>("/firefly/command/pose", 2);
+    twist_pub_ = nh_.advertise<geometry_msgs::Twist>("/firefly/command/twist", 2);
+    subscriber_ = nh_.subscribe("/firefly/ground_truth/pose", 2, &PosePlanner::pose_callback, this);
 
-private:
-    ros::NodeHandle nh_;
-    ros::Subscriber pose_sub_;
-    ros::Publisher pose_pub_;
-    ros::Publisher twist_pub_;
-    ros::ServiceServer service_;
-    ros::Rate rate_;
+    ROS_INFO_STREAM("Node initialised.");
+}
 
-    geometry_msgs::PoseStamped current_pose_;
-    double start_time_;
-
-    // Callback to update the current robot pose
-    void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
-    {
-        current_pose_ = *msg;
-    }
-
-    // Service callback for moving the robot to a specified target using cubic polynomial
-    bool moveToCallback(highlevel_msgs::MoveTo::Request& req, highlevel_msgs::MoveTo::Response& res)
-    {
-        // Save the current time and pose
-        start_time_ = ros::Time::now().toSec();
-        Eigen::Vector3d start_pos(current_pose_.pose.position.x, current_pose_.pose.position.y, current_pose_.pose.position.z);
-        Eigen::Vector3d target_pos(req.x, req.y, req.z);
-        double target_time = req.T;
-
-        // Check for invalid target (e.g., z=0 is invalid)
-        if (req.z <= 0)
-        {
-            ROS_ERROR("Cannot move to target position with z=0 or less.");
-            res.success = false;
-            return false;
-        }
-
-        // Loop to calculate the trajectory and publish at 500Hz
-        while (ros::Time::now().toSec() - start_time_ < target_time)
-        {
-            double t = ros::Time::now().toSec() - start_time_;
-            double tau = t / target_time;
-
-            // Cubic polynomial interpolation for translation
-            Eigen::Vector3d current_pos = (2 * std::pow(tau, 3) - 3 * std::pow(tau, 2) + 1) * start_pos
-                                        + (-2 * std::pow(tau, 3) + 3 * std::pow(tau, 2)) * target_pos;
-
-            // Fill the Pose message
-            geometry_msgs::Pose pose_msg;
-            pose_msg.position.x = current_pos.x();
-            pose_msg.position.y = current_pos.y();
-            pose_msg.position.z = current_pos.z();
-
-            // Keep orientation constant (use current orientation)
-            pose_msg.orientation = current_pose_.pose.orientation;
-
-            // Publish the Pose message
-            pose_pub_.publish(pose_msg);
-
-            // Fill and publish the Twist message (simplified to zero velocity here)
-            geometry_msgs::Twist twist_msg;
-            twist_pub_.publish(twist_msg);
-
-            ros::spinOnce();
-            rate_.sleep();
-        }
-
-        // Successfully reached the target
+bool PosePlanner::move_callback(highlevel_msgs::MoveTo::Request  &req, highlevel_msgs::MoveTo::Response &res)
+{
+    if (req.z <= 0) {
+        res.success = false;
+        ROS_INFO_STREAM("Cannot move to zero, drone will crash :/");
+        return false;
+    } else {
+        target_pos_(0) = req.x;
+        target_pos_(1) = req.y;
+        target_pos_(2) = req.z;
+        start_time_ = ros::Time::now().toSec();  // Save the start time in seconds
+        ROS_INFO("Success.");
         res.success = true;
         return true;
     }
-};
+}
 
-int main(int argc, char** argv)
+void PosePlanner::pose_callback(
+    const geometry_msgs::Pose::ConstPtr &initial_pose)
+{
+    current_time_ = ros::Time::now().toSec() - start_time_;
+    current_time_ = clamp(current_time_, 0.0, target_time_);
+
+    init_pos_(0) = initial_pose->position.x;
+    init_pos_(1) = initial_pose->position.y;
+    init_pos_(2) = initial_pose->position.z;
+
+    orient_quat_.coeffs()(0) = initial_pose->orientation.x;
+    orient_quat_.coeffs()(1) = initial_pose->orientation.y;
+    orient_quat_.coeffs()(2) = initial_pose->orientation.z;
+    orient_quat_.coeffs()(3) = initial_pose->orientation.w;
+}
+
+void PosePlanner::update_pose()
+{
+    double time_deriv;
+    double time_step;
+    Eigen::Vector3d angular_velocity = Eigen::Vector3d::Zero();
+    Eigen::Vector3d linear_velocity;
+    geometry_msgs::Twist twist;
+    geometry_msgs::Pose pose;
+
+    time_step = ((3 * pow(current_time_, 2)) / pow(target_time_, 2)) -
+                ((2 * pow(current_time_, 3)) / pow(target_time_, 3));
+
+    current_pos_ = init_pos_ + (time_step * (target_pos_ - init_pos_));
+
+    time_deriv = ((6 * current_time_) / pow(target_time_, 2)) -
+                 ((6 * pow(current_time_, 2)) / pow(target_time_, 3));
+    linear_velocity = time_deriv * (target_pos_ - init_pos_);
+
+    twist.linear.x = linear_velocity(0);
+    twist.linear.y = linear_velocity(1);
+    twist.linear.z = linear_velocity(2);
+    twist.angular.x = angular_velocity(0);
+    twist.angular.y = angular_velocity(1);
+    twist.angular.z = angular_velocity(2);
+
+    pose.position.x = current_pos_(0);
+    pose.position.y = current_pos_(1);
+    pose.position.z = current_pos_(2);
+    pose.orientation.x = orient_quat_.coeffs()(0);
+    pose.orientation.y = orient_quat_.coeffs()(1);
+    pose.orientation.z = orient_quat_.coeffs()(2);
+    pose.orientation.w = orient_quat_.coeffs()(3);
+
+    twist_pub_.publish(twist);
+    pose_pub_.publish(pose);
+}
+
+int main(int argc, char **argv)
 {
     ros::init(argc, argv, "pose_planner");
-    ros::NodeHandle nh;
+    PosePlanner planner_node;
+    ros::Rate loop_rate(500); // 500 Hz
 
-    PosePlanner planner(nh);
-    planner.spin();
+    while (ros::ok())
+    {
+        ros::spinOnce();
+        planner_node.update_pose();
+        loop_rate.sleep();
+    }
 
     return 0;
 }
-

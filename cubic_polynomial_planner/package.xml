@@ -2,8 +2,8 @@
 <package format="2">
   <name>cubic_polynomial_planner</name>
   <version>0.0.0</version>
-  <description>The cubic_polynomial_planner package</description>
-
+  <description>The cubicpolynomialplanner package</description>
+  <author email="samson.lokwakai@mail.mcgill.ca">Ekeno</author>
   <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno</maintainer>
   <license>BSD</license>
 
@@ -11,5 +11,7 @@
   <depend>highlevel_msgs</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>rotors_gazebo</depend>
 
 </package>
