@@ -27,9 +27,7 @@ bool PosePlanner::move_callback(highlevel_msgs::MoveTo::Request  &req, highlevel
         ROS_INFO_STREAM("Cannot move to zero, drone will crash :/");
         return false;
     } else {
-        target_pos_(0) = req.x;
-        target_pos_(1) = req.y;
-        target_pos_(2) = req.z;
+      	target_pos_ << req.x, req.y, req.z;
         start_time_ = ros::Time::now().toSec();  // Save the start time in seconds
         ROS_INFO("Success.");
         res.success = true;
@@ -43,10 +41,9 @@ void PosePlanner::pose_callback(
     current_time_ = ros::Time::now().toSec() - start_time_;
     current_time_ = clamp(current_time_, 0.0, target_time_);
 
-    init_pos_(0) = initial_pose->position.x;
-    init_pos_(1) = initial_pose->position.y;
-    init_pos_(2) = initial_pose->position.z;
+    init_pos_ << initial_pose->position.x, initial_pose->position.y, initial_pose->position.z;
 
+    //orient_quat_.coeffs() << initial_pose->orientation.x, initial_pose->orientation.y, initial_pose->orientation.z, initial_pose->orientation.w;
     orient_quat_.coeffs()(0) = initial_pose->orientation.x;
     orient_quat_.coeffs()(1) = initial_pose->orientation.y;
     orient_quat_.coeffs()(2) = initial_pose->orientation.z;
