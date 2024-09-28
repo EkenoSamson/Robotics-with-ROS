@@ -1,17 +1,11 @@
 // pose_planner.cpp
 // created by Ekeno
-
 #include "pose_planner.h"
 using namespace std;
 
 PosePlanner::PosePlanner()
 {
-    target_time_ = 1.0; 								// Set to a valid initial value
-    target_pos_ = Eigen::Vector3d::Zero();
-    init_pos_ = Eigen::Vector3d::Zero();
-    current_pos_ = Eigen::Vector3d::Zero();
-    orient_quat_ = Eigen::Quaterniond::Identity();
-
+    // Node service, publisers and subscribers
     service_ = nh_.advertiseService("pose_planner/move_to", &PosePlanner::move_callback, this);
     pose_pub_ = nh_.advertise<geometry_msgs::Pose>("/firefly/command/pose", 2);
     twist_pub_ = nh_.advertise<geometry_msgs::Twist>("/firefly/command/twist", 2);
@@ -22,76 +16,76 @@ PosePlanner::PosePlanner()
 
 bool PosePlanner::move_callback(highlevel_msgs::MoveTo::Request  &req, highlevel_msgs::MoveTo::Response &res)
 {
+	// ensuring the drone don't crush
     if (req.z <= 0) {
         res.success = false;
-        ROS_INFO_STREAM("Cannot move to zero, drone will crash :/");
         return false;
     } else {
-      	target_pos_ << req.x, req.y, req.z;
-        start_time_ = ros::Time::now().toSec();  // Save the start time in seconds
-        ROS_INFO("Success.");
+      	terminal_pos_ << req.x, req.y, req.z;
+        start_time_ = ros::Time::now().toSec();
+        terminal_time_ = req.T;
         res.success = true;
         return true;
     }
 }
 
-void PosePlanner::pose_callback(
-    const geometry_msgs::Pose::ConstPtr &initial_pose)
+void PosePlanner::pose_callback(const geometry_msgs::Pose::ConstPtr &current_pose)
 {
     current_time_ = ros::Time::now().toSec() - start_time_;
-    current_time_ = clamp(current_time_, 0.0, target_time_);
+    current_time_ = clamp(current_time_, 0.0, terminal_time_);
+    start_pos_ << current_pose->position.x,
+        			current_pose->position.y,
+        			current_pose->position.z;
 
-    init_pos_ << initial_pose->position.x, initial_pose->position.y, initial_pose->position.z;
-
-    //orient_quat_.coeffs() << initial_pose->orientation.x, initial_pose->orientation.y, initial_pose->orientation.z, initial_pose->orientation.w;
-    orient_quat_.coeffs()(0) = initial_pose->orientation.x;
-    orient_quat_.coeffs()(1) = initial_pose->orientation.y;
-    orient_quat_.coeffs()(2) = initial_pose->orientation.z;
-    orient_quat_.coeffs()(3) = initial_pose->orientation.w;
+	orient_quat_ = Eigen::Quaterniond(	current_pose->orientation.w,
+    									current_pose->orientation.x,
+    									current_pose->orientation.y,
+    									current_pose->orientation.z);
 }
 
 void PosePlanner::update_pose()
 {
-    double time_deriv;
-    double time_step;
-    Eigen::Vector3d angular_velocity = Eigen::Vector3d::Zero();
-    Eigen::Vector3d linear_velocity;
-    geometry_msgs::Twist twist;
-    geometry_msgs::Pose pose;
+    // calculating the position scaling factor and the translation
+    position_scaling_factor_ = ((3 * pow(current_time_, 2)) / pow(terminal_time_, 2))
+                             - ((2 * pow(current_time_, 3)) / pow(terminal_time_, 3));
+    move_to_ = start_pos_ + (position_scaling_factor_ * (terminal_pos_ - start_pos_));
 
-    time_step = ((3 * pow(current_time_, 2)) / pow(target_time_, 2)) -
-                ((2 * pow(current_time_, 3)) / pow(target_time_, 3));
+    //calculating the velocity scaling factor and linear_velocity
+    velocity_scaling_factor_ = ((6 * current_time_) / pow(terminal_time_, 2))
+                             - ((6 * pow(current_time_, 2)) / pow(terminal_time_, 3));
+    linear_velocity = velocity_scaling_factor_ * (terminal_pos_ - start_pos_);
 
-    current_pos_ = init_pos_ + (time_step * (target_pos_ - init_pos_));
+    // assigning linear velocity to twist message
+    twist.linear.x = linear_velocity.x();
+    twist.linear.y = linear_velocity.y();
+    twist.linear.z = linear_velocity.z();
 
-    time_deriv = ((6 * current_time_) / pow(target_time_, 2)) -
-                 ((6 * pow(current_time_, 2)) / pow(target_time_, 3));
-    linear_velocity = time_deriv * (target_pos_ - init_pos_);
+    // assigning angular velocity to twist message
+    twist.angular.x = angular_velocity.x();
+    twist.angular.y = angular_velocity.y();
+    twist.angular.z = angular_velocity.z();
 
-    twist.linear.x = linear_velocity(0);
-    twist.linear.y = linear_velocity(1);
-    twist.linear.z = linear_velocity(2);
-    twist.angular.x = angular_velocity(0);
-    twist.angular.y = angular_velocity(1);
-    twist.angular.z = angular_velocity(2);
+	// assigning position to pose message
+    pose.position.x = move_to_.x();
+    pose.position.y = move_to_.y();
+    pose.position.z = move_to_.z();
 
-    pose.position.x = current_pos_(0);
-    pose.position.y = current_pos_(1);
-    pose.position.z = current_pos_(2);
-    pose.orientation.x = orient_quat_.coeffs()(0);
-    pose.orientation.y = orient_quat_.coeffs()(1);
-    pose.orientation.z = orient_quat_.coeffs()(2);
-    pose.orientation.w = orient_quat_.coeffs()(3);
+    // assigning orientation to pose message
+    pose.orientation.x = orient_quat_.x();
+    pose.orientation.y = orient_quat_.y();
+    pose.orientation.z = orient_quat_.z();
+    pose.orientation.w = orient_quat_.w();
 
+    // publishing the messages
     twist_pub_.publish(twist);
     pose_pub_.publish(pose);
 }
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "pose_planner");
-    PosePlanner planner_node;
-    ros::Rate loop_rate(500); // 500 Hz
+    ros::init(argc, argv, "pose_planner");		// Initializing pose_planner
+    PosePlanner planner_node;					// Instance of the node object
+    ros::Rate loop_rate(500); 					// 500 Hz
 
     while (ros::ok())
     {
