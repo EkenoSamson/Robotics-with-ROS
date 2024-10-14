@@ -1,0 +1,11 @@
+<launch>
+    <!-- Node definition -->
+    <node name="inverse_kinematic_controller" pkg="kinematic_controller" type="inverse_kinematic_controller" output="screen" />
+
+    <!-- URDF file to load for the Pinocchio model -->
+    <arg name="urdf_file" default="$(find kortex_description)/urdf/gen3.urdf"/>
+
+    <!-- ROS parameters -->
+    <param name="/gen3/urdf_file_name" value="$(arg urdf_file)" />
+    <param name="/publish_rate" value="500" />
+</launch>
