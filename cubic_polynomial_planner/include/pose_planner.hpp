@@ -1,6 +1,3 @@
-// Created by ekeno on 25/09/24.
-// pose_planner.h
-
 #ifndef POSE_PLANNER_H
 #define POSE_PLANNER_H
 
@@ -26,10 +23,10 @@ public:
     // Function to update and publish the pose
     void update_pose();
 
-private:
-    // NodeHandle for ROS
+    // Public node handle to access parameters
     ros::NodeHandle nh_;
 
+private:
     // ROS publishers, subscribers, and service server
     ros::Publisher pose_pub_;
     ros::Publisher twist_pub_;
@@ -45,6 +42,7 @@ private:
 
     // Position vectors (frame)
     Eigen::Vector3d start_pos_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d current_pos_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d move_to_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d terminal_pos_ = Eigen::Vector3d::Zero();
 
@@ -61,4 +59,3 @@ private:
 };
 
 #endif // POSE_PLANNER_H
-

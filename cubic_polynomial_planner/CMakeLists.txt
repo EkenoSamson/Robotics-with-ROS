@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
 		roscpp
 		std_msgs
 		geometry_msgs
-		rotors_gazebo
 )
 find_package(Eigen3 REQUIRED)
 
@@ -26,7 +25,7 @@ catkin_package(
                 roscpp
                 std_msgs
 				highlevel_msgs
-				rotors_gazebo
+				geometry_msgs
         DEPENDS
 )
 
