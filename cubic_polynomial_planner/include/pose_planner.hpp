@@ -56,6 +56,10 @@ private:
     // Publishers
     geometry_msgs::Twist twist;
     geometry_msgs::Pose pose;
+
+    // flag
+    bool pose_received_ = false;
+
 };
 
 #endif // POSE_PLANNER_H

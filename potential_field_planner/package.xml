@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>potential_field_planner</name>
+  <version>0.0.0</version>
+  <description>The potential_field_planner package</description>
+
+  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</maintainer>
+  <author email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</author>
+
+  <license>BSD</license>
+
+  <!-- Dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>Eigen3</depend>
+
+</package>

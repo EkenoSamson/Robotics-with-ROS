@@ -4,7 +4,7 @@
 #include "pose_planner.hpp"
 using namespace std;
 
-PosePlanner::PosePlanner()
+PosePlanner::PosePlanner() : pose_received_(false)
 {
     // Node service, publisers and subscribers
     service_ = nh_.advertiseService("pose_planner/move_to", &PosePlanner::move_callback, this);
@@ -46,14 +46,22 @@ void PosePlanner::pose_callback(const geometry_msgs::Pose::ConstPtr &current_pos
                     current_pose->position.y,
                     current_pose->position.z;
 
-    orient_quat_ = Eigen::Quaterniond(    current_pose->orientation.w,
-                                          current_pose->orientation.x,
-                                          current_pose->orientation.y,
-                                          current_pose->orientation.z);
+//    orient_quat_ = Eigen::Quaterniond(    current_pose->orientation.w,
+//                                          current_pose->orientation.x,
+//                                          current_pose->orientation.y,
+//                                          current_pose->orientation.z);
+    ROS_INFO("Published current_pos pose: [%f, %f, %f]", current_pos_(0), current_pos_(1), current_pos_(2));
+    pose_received_ = true;
 }
 
 void PosePlanner::update_pose()
 {
+  if (terminal_time_ > 0.0) {
+    if (!pose_received_)
+    {
+        ROS_WARN_STREAM("Pose not received, skipping update.");
+        return;  // Skip the update if no pose data has been received
+    }
     // Calculate the position scaling factor and the translation
     position_scaling_factor_ = ((3 * pow(current_time_, 2)) / pow(terminal_time_, 2))
                                - ((2 * pow(current_time_, 3)) / pow(terminal_time_, 3));
@@ -73,21 +81,25 @@ void PosePlanner::update_pose()
     twist.angular.x = angular_velocity.x();
     twist.angular.y = angular_velocity.y();
     twist.angular.z = angular_velocity.z();
+    ROS_INFO("Published move_to pose: [%f, %f, %f]", move_to_.x(), move_to_.y(), move_to_.z());
+    ROS_INFO("Publishing_pose");
 
     // Assign position to pose message
     pose.position.x = move_to_.x();
     pose.position.y = move_to_.y();
     pose.position.z = move_to_.z();
-
-    // Assign orientation to pose message
-    pose.orientation.x = orient_quat_.x();
-    pose.orientation.y = orient_quat_.y();
-    pose.orientation.z = orient_quat_.z();
-    pose.orientation.w = orient_quat_.w();
+    ROS_INFO_STREAM("Pose: " << pose);
+    ROS_INFO("Published pose: [%f, %f, %f]", pose.position.x, pose.position.y, pose.position.z);
+//    // Assign orientation to pose message
+//    pose.orientation.x = orient_quat_.x();
+//    pose.orientation.y = orient_quat_.y();
+//    pose.orientation.z = orient_quat_.z();
+//    pose.orientation.w = orient_quat_.w();
 
     // Publish the messages
     twist_pub_.publish(twist);
     pose_pub_.publish(pose);
+    }
 }
 
 int main(int argc, char **argv)

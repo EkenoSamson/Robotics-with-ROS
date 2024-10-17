@@ -1,0 +1,3 @@
+<launch>
+    <node name="joint_planner" pkg="potential_field_planner" type="joint_planner" output="screen"/>
+</launch>

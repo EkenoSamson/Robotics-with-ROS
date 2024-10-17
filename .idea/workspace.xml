@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ae72e706-6082-4075-8dfb-1eeeda1275c2" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/kinematic_controller/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/kinematic_controller/.idea/editor.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kinematic_controller/cmake-build-debug/CMakeFiles/clion-Debug-log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/kinematic_controller/cmake-build-debug/CMakeFiles/clion-Debug-log.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kinematic_controller/include/kinematic_controller.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/kinematic_controller/include/kinematic_controller.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kinematic_controller/launch/controller.launch" beforeDir="false" afterPath="$PROJECT_DIR$/kinematic_controller/launch/controller.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kinematic_controller/src/kinematic_controller.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/kinematic_controller/src/kinematic_controller.cpp" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 6
+}]]></component>
+  <component name="ProjectId" id="2nTsFI24j6Y3FmSYKc6qQqyXycO" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/ekeno/applied-robotics-f2024/kinematic_controller",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ae72e706-6082-4075-8dfb-1eeeda1275c2" name="Changes" comment="" />
+      <created>1729008294971</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1729008294971</updated>
+      <workItem from="1729008297419" duration="38000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

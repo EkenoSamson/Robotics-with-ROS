@@ -1,11 +1,16 @@
 <launch>
-    <!-- Node definition -->
+    <!-- Include the pose planner launch file -->
+    <include file="$(find cubic_polynomial_planner)/launch/pose_planner.launch" />
+
+    <!-- Node definition for inverse kinematic controller -->
     <node name="inverse_kinematic_controller" pkg="kinematic_controller" type="inverse_kinematic_controller" output="screen" />
 
     <!-- URDF file to load for the Pinocchio model -->
     <arg name="urdf_file" default="$(find kortex_description)/urdf/gen3.urdf"/>
 
-    <!-- ROS parameters -->
+    <!-- ROS parameters for kinematic controller -->
     <param name="/gen3/urdf_file_name" value="$(arg urdf_file)" />
     <param name="/publish_rate" value="500" />
+    <param name="/gen3/linear/k_att" value="80" />
+    <param name="/gen3/linear/max_velocity" value="250" />
 </launch>

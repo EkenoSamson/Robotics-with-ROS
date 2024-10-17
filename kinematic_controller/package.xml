@@ -11,9 +11,11 @@
 
   <!-- Dependencies -->
   <buildtool_depend>catkin</buildtool_depend>
+  <depend>cubic_polynomial_planner</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>highlevel_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>Eigen3</depend>
   <depend>pinocchio</depend>
