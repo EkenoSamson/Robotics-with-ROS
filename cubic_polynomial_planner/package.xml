@@ -2,15 +2,35 @@
 <package format="2">
   <name>cubic_polynomial_planner</name>
   <version>0.0.0</version>
-  <description>The cubicpolynomialplanner package</description>
-  <author email="samson.lokwakai@mail.mcgill.ca">Ekeno</author>
-  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno</maintainer>
+  <description>
+    This package provides cubic polynomial trajectory planning for a robot,
+    using a service to move the robot to a specified position and time.
+  </description>
+  <author email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</author>
+  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</maintainer>
   <license>BSD</license>
 
+  <!-- Build Tool Dependency -->
+  <!-- Catkin is required to build ROS packages -->
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>highlevel_msgs</depend>
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
+
+  <!-- Build-time Dependencies -->
+  <!-- These dependencies are required during the build process, to generate custom messages/services or compile C++ nodes -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>highlevel_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>eigen</build_depend>
+
+  <!-- Runtime Dependencies -->
+  <!-- These dependencies are required when running the package, after it has been built -->
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>highlevel_msgs</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>eigen</exec_depend>
+
 
 </package>

@@ -2,15 +2,28 @@
 <package format="2">
   <name>highlevel_msgs</name>
   <version>0.0.0</version>
-  <description>The highlevel_msgs package</description>
 
-  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno</maintainer>
+  <description>
+      This package defines custom service types (MoveTo.srv) for controlling robot movement.
+  </description>
+
+  <author email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</author>
+  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</maintainer>
   <license>BSD</license>
 
+  <!-- Build tool dependency: catkin is required for building ROS packages -->
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>genmsg</depend>
-  <depend>roscpp</depend>
-  <depend>message_generation</depend>
-  <depend>std_msgs</depend>
+
+  <!-- Build-time dependencies -->
+  <!-- message_generation is required to generate service files -->
+  <build_depend>message_generation</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <!-- Runtime dependencies -->
+  <!-- message_runtime is needed to use the generated message/service at runtime -->
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
 
 </package>

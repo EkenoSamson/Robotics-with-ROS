@@ -3,6 +3,10 @@
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
 
-    <param name="publish_rate" value="500"/> <!-- Use this parameter in the node -->
+    <!--setting parameters for topics-->
+    <param name="/feedback_pose_topic" value="/gen3/feedback/pose"/>
+    <param name="/reference_pose_topic" value="/gen3/reference/pose"/>
+    <param name="/reference_twist_topic" value="/gen3/reference/twist"/>
+
 </launch>
 

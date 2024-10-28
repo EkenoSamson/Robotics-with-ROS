@@ -4,17 +4,27 @@
   <version>0.0.0</version>
   <description>The potential_field_planner package</description>
 
-  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</maintainer>
-  <author email="samson.lokwakai@mail.mcgill.ca">Ekeno Lokwakai</author>
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <!-- Example:  -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="samson.lokwakai@mail.mcgill.ca">ekeno</maintainer>
 
   <license>BSD</license>
 
-  <!-- Dependencies -->
+  <!-- Build dependencies -->
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>Eigen3</depend>
 
+  <!-- Build and runtime dependencies -->
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>eigen</depend>
+  <depend>pinocchio</depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
 </package>

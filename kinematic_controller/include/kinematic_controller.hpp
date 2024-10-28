@@ -20,6 +20,7 @@
 #include <string>                              // Standard string library
 #include <Eigen/Dense>                         // Eigen library for matrix/vector operations
 
+
 class KIN
 {
 public:
@@ -86,6 +87,11 @@ private:
 
     // Joint position command message
     std_msgs::Float64MultiArray joint_position_msg_; // Message to publish joint positions
+
+    // Subscriber and Publisher topics
+    std::string joint_states_topic_;                // joint states topic
+    std::string feedback_pose_topic_;               // feedback pose topic
+    std::string feedback_twist_topic_;              // feedback twist topic
 
 };
 

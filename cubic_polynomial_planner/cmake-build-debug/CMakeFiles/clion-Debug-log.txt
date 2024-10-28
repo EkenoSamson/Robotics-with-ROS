@@ -7,7 +7,7 @@ CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
   CMake that the project does not need compatibility with older versions.
 
 
-CMake Error at CMakeLists.txt:11 (find_package):
+CMake Error at CMakeLists.txt:7 (find_package):
   By not providing "Findcatkin.cmake" in CMAKE_MODULE_PATH this project has
   asked CMake to find a package configuration file provided by "catkin", but
   CMake did not find one.

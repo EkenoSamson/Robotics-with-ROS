@@ -1,20 +1,24 @@
-/**
-* kinematic_controller.cpp
-* created by Ekeno
-*/
 #include "kinematic_controller.hpp"
+
+/*
+ * KIN - class for kinematics
+ * Description: Perform forward and inverse kinematics
+ * Author: Ekeno
+ ***********************************************
+ */
+
 
 // Constructor for the KIN class
 KIN::KIN(ros::NodeHandle& nh) : nh_(nh), model_loaded_(false), joint_states_received_(false), reference_pose_received_(false)
 {
     // Initialize Eigen vectors and matrices to zero
-    task_space_vel_ = Eigen::VectorXd::Zero(3);            // 3D vector for end-effector velocity
-    task_space_pos_ = Eigen::VectorXd::Zero(3);            // 3D vector for end-effector position
-    joint_positions_.resize(num_joints_);                     // Vector for joint positions (size: num_joints_)
-    joint_velocities_.resize(num_joints_);                    // Vector for joint velocities (size: num_joints_)
-    jacobian_ = Eigen::MatrixXd::Zero(6, num_joints_);     // 6xN Jacobian matrix (6 for spatial velocity, N = num_joints_)
-    reference_pos_.resize(3);                               // 3D vector for reference end-effector position
-    joint_position_msg_.data.resize(num_joints_);          // Initialize the joint position command message with the correct dimensionality
+    task_space_vel_ = Eigen::VectorXd::Zero(3);                                                                          // 3D vector for end-effector velocity
+    task_space_pos_ = Eigen::VectorXd::Zero(3);                                                                          // 3D vector for end-effector position
+    joint_positions_.resize(num_joints_);                                                                                // Vector for joint positions (size: num_joints_)
+    joint_velocities_.resize(num_joints_);                                                                               // Vector for joint velocities (size: num_joints_)
+    jacobian_ = Eigen::MatrixXd::Zero(6, num_joints_);                                                                   // 6xN Jacobian matrix (6 for spatial velocity, N = num_joints_)
+    reference_pos_.resize(3);                                                                                            // 3D vector for reference end-effector position
+    joint_position_msg_.data.resize(num_joints_);                                                                        // Initialize the joint position command message with the correct dimensionality
 
     // Attempt to read ROS parameters (publish rate, URDF file, k_att, max_velocity)
     if (!readParameters()) {
@@ -22,12 +26,12 @@ KIN::KIN(ros::NodeHandle& nh) : nh_(nh), model_loaded_(false), joint_states_rece
     }
 
     // Set up ROS publishers and subscribers
-    joint_states_sub_ = nh_.subscribe("/gen3/joint_states", 1, &KIN::jointStatesCallback, this); // Subscribe to joint states
-    reference_pose_sub_ = nh_.subscribe("/gen3/reference/pose", 1, &KIN::referencePoseCallback, this); // Subscribe to reference pose
-    joint_command_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/gen3/joint_group_position_controller/command", 1); // Publish joint commands
+    joint_states_sub_ = nh_.subscribe(joint_states_topic_, 1, &KIN::jointStatesCallback, this);                         // Subscribe to joint states
+    reference_pose_sub_ = nh_.subscribe("/gen3/reference/pose", 1, &KIN::referencePoseCallback, this);                  // Subscribe to reference pose
+    joint_command_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/gen3/joint_group_position_controller/command", 1);// Publish joint commands
 
-    end_effector_pose_pub_ = nh_.advertise<geometry_msgs::Pose>("/gen3/feedback/pose", 1);        // Publish end-effector pose
-    end_effector_twist_pub_ = nh_.advertise<geometry_msgs::Twist>("/gen3/feedback/twist", 1);     // Publish end-effector twist (velocity)
+    end_effector_pose_pub_ = nh_.advertise<geometry_msgs::Pose>(feedback_pose_topic_, 1);                               // Publish end-effector pose
+    end_effector_twist_pub_ = nh_.advertise<geometry_msgs::Twist>(feedback_twist_topic_, 1);                            // Publish end-effector twist (velocity)
 }
 
 // Method to initialize the Pinocchio model by loading the URDF file
@@ -61,24 +65,8 @@ void KIN::update()
         ROS_WARN("Model not loaded. Cannot compute kinematics.");
         return;
     }
-
-//    // Check if joint states have been received
-//    if (!joint_states_received_) {
-//        ROS_WARN_THROTTLE(1, "Waiting for joint states...");
-//        return;  // Skip the rest of the function until joint states are received
-//    }
-
-
-
-//	// Check if reference pose has been received
-//    if (!reference_pose_received_) {
-//        ROS_WARN_THROTTLE(1, "Waiting for reference pose...");
-//        return;  // Skip the rest of the function until reference pose is received
-//    }
-    //if (!reference_pose_received_ && joint_states_received_)
-    // Call inverse kinematics to compute joint velocities and joint positions
-//    ROS_INFO("Received ref pos");
-//    computeInverseKinematics();
+    computeForwardKinematics();
+    computeInverseKinematics();
 }
 
 // Callback method that receives joint state feedback (joint positions and velocities)
@@ -87,8 +75,6 @@ void KIN::jointStatesCallback(const sensor_msgs::JointState::ConstPtr& msg)
     // Map the received joint positions and velocities into Eigen vectors for internal use
     joint_positions_ = Eigen::VectorXd::Map(msg->position.data(), num_joints_);
     joint_velocities_ = Eigen::VectorXd::Map(msg->velocity.data(), num_joints_);
-
-    computeForwardKinematics();
 
     // Set the flag indicating that joint states have been received
     joint_states_received_ = true;
@@ -104,8 +90,6 @@ void KIN::referencePoseCallback(const geometry_msgs::Pose::ConstPtr& msg)
     // Set the flag indicating that reference pose has been received
     reference_pose_received_ = true;
 
-    ROS_INFO("Published ref pose: [%f, %f, %f]", reference_pos_(0), reference_pos_(2), reference_pos_(2));
-    computeInverseKinematics();
 }
 
 void KIN::computeForwardKinematics()
@@ -193,50 +177,35 @@ bool KIN::readParameters()
     // Retrieve the control gain for the inverse kinematics
     if (!nh_.getParam("/gen3/linear/k_att", k_att_)) {
         ROS_WARN("Control gain k_att not found. Using default value: 1.0");
-        k_att_ = 1.0;
+        k_att_ = 80;
     }
 
     // Retrieve the maximum velocity limit
     if (!nh_.getParam("/gen3/linear/max_velocity", max_velocity_)) {
         ROS_WARN("Max velocity not found. Using default value: 1.0");
-        max_velocity_ = 1.0;
+        max_velocity_ = 250;
+    }
+
+    // Joint_states subscriber
+    if (!nh_.getParam("/joint_states_topic", joint_states_topic_)) {
+        ROS_WARN("Joint states topic not found. Using the default topic.");
+        joint_states_topic_ = "/gen3/joint_states";
+    }
+
+    // feedback pose publisher
+    if (!nh_.getParam("/feedback_pose_topic", feedback_pose_topic_)) {
+        ROS_WARN("Feedback pose topic not found. Using the default topic.");
+        feedback_pose_topic_ = "/gen3/feedback/pose";
+    }
+
+    // feedback twist publisher
+    if (!nh_.getParam("/feedback_twist_topic", feedback_twist_topic_)) {
+        ROS_WARN("Feedback twist topic not found. Using the default topic.");
+        feedback_twist_topic_ = "/gen3/feedback/twist";
     }
 
     return true;
 }
 
-// Main entry point for the ROS node
-int main(int argc, char **argv)
-{
-    // Initialize the ROS node with the name "inverse_kinematic_controller"
-    ros::init(argc, argv, "inverse_kinematic_controller");
-    ros::NodeHandle nh("~");  // Private node handle for parameters
 
-    // Create the kinematic controller object
-    KIN kin_controller(nh);
 
-    // Initialize the kinematic controller by loading the Pinocchio model
-    if (!kin_controller.init()) {
-        ROS_ERROR("Failed to initialize KIN controller");
-        return -1;
-    }
-
-    // Set the loop rate for the control loop (based on the publish rate)
-    ros::Rate loop_rate(kin_controller.publish_rate_);
-
-    // Main control loop
-    while (ros::ok())
-    {
-
-        // Process any ROS callbacks (e.g., joint state updates)
-        ros::spinOnce();
-
-        // Perform kinematic updates and publish results
-        // kin_controller.update();
-
-        // Sleep to maintain the desired loop rate
-        loop_rate.sleep();
-    }
-
-    return 0;
-}

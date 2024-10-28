@@ -1,0 +1,13 @@
+<launch>
+  <node name="joint_controller" pkg="dynamic_controller" type="joint_controller" output="screen"></node>
+  <include file="$(find potential_field_planner)/launch/joint_planner.launch"/>
+
+  <!--Creating ROS parameters-->
+  <param name="/K_J" value="0.1"/>
+  <param name="/D_J" value="0.1"/>
+
+  <param name="/joint_states_topic" value="/gen3/joint_states"/>
+  <param name="/reference_position_topic" value="/gen3/reference/position"/>
+  <param name="/reference_velocity_topic" value="/gen3/reference/velocity"/>
+  <param name="/joint_group_effort_controller_command" value="/gen3/joint_group_effort_controller/command"/>
+</launch>

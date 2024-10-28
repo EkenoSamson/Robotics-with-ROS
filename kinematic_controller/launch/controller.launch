@@ -10,7 +10,6 @@
 
     <!-- ROS parameters for kinematic controller -->
     <param name="/gen3/urdf_file_name" value="$(arg urdf_file)" />
-    <param name="/publish_rate" value="500" />
-    <param name="/gen3/linear/k_att" value="80" />
-    <param name="/gen3/linear/max_velocity" value="250" />
+    <param name="/joint_states_topic" value="/gen3/joint_states"/>
+    <param name="/feedback_twist_topic" value="/gen3/joint_states"/>
 </launch>

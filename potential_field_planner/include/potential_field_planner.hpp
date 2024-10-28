@@ -2,35 +2,64 @@
 #define POTENTIAL_FIELD_PLANNER_HPP
 
 #include <ros/ros.h>
-#include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64MultiArray.h>
-#include <Eigen/Dense>  // Eigen library for vector and matrix operations
+#include <Eigen/Dense>
+#include <sensor_msgs/JointState.h>
+#include <string>
 
-class PotentialFieldPlanner {
-public:
-    PotentialFieldPlanner(ros::NodeHandle& nh);  // Constructor
 
-    // Function to compute joint velocities based on potential field forces
-    void computeJointVelocities();
 
-private:
-    void readParameters(ros::NodeHandle& nh);  // Function to read all ROS parameters
-    void jointStateCallback(const sensor_msgs::JointState::ConstPtr& msg);  // Callback for joint state feedback
-    void publishJointVelocities(const Eigen::VectorXd& joint_velocities);  // Helper to publish velocities
+class PotF
+{
+  public:
+    // constructor and destructor
+    PotF(ros::NodeHandle& nh);
 
-    // ROS subscriber and publisher
-    ros::Subscriber joint_state_sub_;
-    ros::Publisher velocity_pub_;
 
-    // Parameters for potential field computation
-    double k_att_;  // Scalar value for attractive potential constant
-    double max_velocity_;  // Scalar value for max velocity per joint
-    Eigen::VectorXd default_joint_positions_;  // Vector for default joint positions
-    Eigen::VectorXd max_velocity_vector_;  // Vector for max velocity per joint
 
-    // Current joint state
-    Eigen::VectorXd current_positions_;
-    bool received_joint_state_;  // Flag to check if feedback has been received
+    // CallBacks
+    void jointStatesCallBack(const sensor_msgs::JointState::ConstPtr& msg);
+
+    // Helper functions
+    void readParameters();
+    void computePotentialField();
+    void publishJointReferences();
+
+
+    // Public variables
+    double publish_rate_;
+    Eigen::Matrix<double, 7, 1> default_;      // Default joint positions (7 joints)
+    Eigen::Matrix<double, 7, 1> k_att_;        // Attractive potential gains (7 joints)
+    Eigen::Matrix<double, 7, 1> max_velocity_; // Maximum joint velocities (7 joints)
+
+
+    // flags
+    bool received_joint_states_ = false;
+
+
+  private:
+    ros::NodeHandle nh_;
+
+    // Subscribers
+    ros::Subscriber joint_states_sub_;
+
+    // Publishers
+    ros::Publisher reference_position_pub_;
+    ros::Publisher reference_velocity_pub_;
+
+    // Joint positions and velocities
+    Eigen::Matrix<double, 7, 1> joint_positions_;
+    Eigen::Matrix<double, 7, 1> joint_velocities_;
+
+    // reference positions and velocities (to be published)
+    Eigen::Matrix<double, 7, 1> reference_positions_;
+    Eigen::Matrix<double, 7, 1> reference_velocities_;
+
+    // Subscribers and Publishers topics
+    std::string joint_states_sub_topic_;
+    std::string reference_position_topic_;
+    std::string reference_velocity_topic_;
+
 };
 
-#endif  // POTENTIAL_FIELD_PLANNER_HPP
+#endif /* POTENTIAL_FIELD_PLANNER_HPP */

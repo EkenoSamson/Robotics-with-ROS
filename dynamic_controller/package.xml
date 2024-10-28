@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dynamic_controller</name>
+  <version>0.1.0</version>
+  <description>
+    ROS package for implementing a joint-space and task-space inverse dynamic controller using Pinocchio and Eigen
+  </description>
+
+  <maintainer email="samson.lokwakai@mail.mcgill.ca">Ekeno</maintainer>
+
+  <license>BSD</license>
+
+  <!-- Build dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Runtime and build dependencies -->
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>control_msgs</depend>
+  <depend>urdf</depend>
+  <depend>Eigen3</depend>
+  <depend>pinocchio</depend>
+  <depend>highlevel_msgs</depend>
+  <depend>potential_field_planner</depend>
+  <depend>cubic_polynomial_planner</depend>
+
+  <!-- Include ROS message generation dependencies -->
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+</package>

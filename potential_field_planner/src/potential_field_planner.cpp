@@ -1,122 +1,146 @@
+#include <ros/ros.h>
 #include "potential_field_planner.hpp"
-#include <std_msgs/Float64MultiArray.h>
 
-// Constructor: Initializes the ROS node and sets up parameters, publishers, and subscribers
-PotentialFieldPlanner::PotentialFieldPlanner(ros::NodeHandle& nh)
-    : received_joint_state_(false)  // Initialize the feedback flag to false
+
+// constructor:
+PotF::PotF(ros::NodeHandle& nh) : nh_(nh)
 {
-    // Read parameters from the ROS parameter server
-    readParameters(nh);
+  // Initialise the variables
+  default_.setZero();                // Initializes the 7-element vector to all zeros
+  k_att_.setZero();
+  max_velocity_.setZero();
+  joint_positions_.setZero();       // Initialize joint positions to zeros
+  joint_velocities_.setZero();      // Initialize joint velocities to zeros
 
-    // Subscribe to the joint states topic to receive feedback on the robot's joint positions
-    joint_state_sub_ = nh.subscribe("/gen3/joint_states", 10, &PotentialFieldPlanner::jointStateCallback, this);
+  // read parameters
+  readParameters();
 
-    // Publisher for the joint velocities, using Float64MultiArray to send the velocity commands
-    velocity_pub_ = nh.advertise<std_msgs::Float64MultiArray>("/gen3/reference/velocity", 10);
+
+  // Initialise subscriber for joint states
+  joint_states_sub_ = nh_.subscribe(joint_states_sub_topic_, 10, &PotF::jointStatesCallBack, this);
+
+  // Initialize the publishers for reference joint positions and velocities
+  reference_position_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/gen3/reference/position", 10);
+  reference_velocity_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/gen3/reference/velocity", 10);
+
+  //service
 }
 
-// Function to read parameters from the ROS parameter server
-void PotentialFieldPlanner::readParameters(ros::NodeHandle& nh) {
-    // Load scalar values for k_att and max_velocity
-    nh.getParam("/gen3/linear/k_att", k_att_);
-    nh.getParam("/gen3/linear/max_velocity", max_velocity_);
+// Reading the parameters
+void PotF::readParameters()
+{
+  // Load publish rate
+  if (!nh_.getParam("/publish_rate", publish_rate_)) {
+    ROS_WARN("Publish rate not set");
+    publish_rate_ = 500.0;
+  }
 
-    // Load the default joint positions and max velocity as Eigen vectors directly
-    std::vector<double> default_positions, max_velocity_vec;
+  // Load K attractive (potential gains) as a vector and map to Eigen::Matrix
+  std::vector<double> k_att_vec;
+  if (!nh_.getParam("/gen3/joint/k_att", k_att_vec)) {
+    ROS_WARN("K att not set, setting to default 20 for all joints.");
+    k_att_.setConstant(20.0);
+  } else {
+    k_att_ = Eigen::Map<Eigen::Matrix<double, 7, 1>>(k_att_vec.data());
+  }
 
-    nh.getParam("/gen3/joint/default", default_positions);
-    nh.getParam("/gen3/joint/max_velocity", max_velocity_vec);
+  // Load maximum velocity
+  std::vector<double> max_velocity_vec;
+  if (!nh_.getParam("/gen3/joint/max_velocity", max_velocity_vec)) {
+    ROS_WARN("Max velocity not set, setting to default 1.2 for all joints.");
+    max_velocity_.setConstant(1.2);
+  } else {
+    max_velocity_ = Eigen::Map<Eigen::Matrix<double, 7, 1>>(max_velocity_vec.data());
+  }
 
-    // Convert std::vector to Eigen::VectorXd
-    default_joint_positions_ = Eigen::Map<Eigen::VectorXd>(default_positions.data(), default_positions.size());
-    max_velocity_vector_ = Eigen::Map<Eigen::VectorXd>(max_velocity_vec.data(), max_velocity_vec.size());
+  // Load default joint positions
+  std::vector<double> default_vec;
+  if (!nh_.getParam("/gen3/joint/default", default_vec)) {
+    ROS_WARN("Default joint positions not set, setting to default values.");
+    default_ << 1.57, 0.35, 1.57, -2.0, 0.0, -1.0, 1.57;
+  } else {
+    default_ = Eigen::Map<Eigen::Matrix<double, 7, 1>>(default_vec.data());
+  }
+
+  // read the joint_states_
+  if (!nh_.getParam("/joint_states_topic", joint_states_sub_topic_)) {
+    ROS_WARN("Subscriber topic not set");
+    joint_states_sub_topic_ = "/gen3/joint_states";
+  }
+
+  if (!nh_.getParam("/gen3/reference/velocity_topic", reference_velocity_topic_)) {
+    reference_velocity_topic_ = "/gen3/reference/velocity";
+    ROS_WARN("Reference velocity topic not set. Using default: /gen3/reference/velocity");
+  }
+
+  if (!nh_.getParam("/gen3/reference/position_topic", reference_position_topic_)) {
+    reference_position_topic_ = "/gen3/reference/position";
+    ROS_WARN("Reference position topic not set. Using default: /gen3/reference/position");
+  }
 }
 
-// Callback function for receiving joint state feedback
-void PotentialFieldPlanner::jointStateCallback(const sensor_msgs::JointState::ConstPtr& msg) {
-    // Resize the Eigen vector to match the size of the incoming message
-    current_positions_.resize(msg->position.size());
-
-    // Copy the joint positions from the message into the Eigen vector
-    for (size_t i = 0; i < msg->position.size(); ++i) {
-        current_positions_[i] = msg->position[i];
+// Joint states callback
+void PotF::jointStatesCallBack(const sensor_msgs::JointState::ConstPtr& msg)
+{
+  // get the joints positions and velocities
+  if (msg->position.size() == 7 && msg->velocity.size() == 7) {
+    for (int i = 0; i < 7; i++) {
+      joint_positions_(i) = msg->position[i];
+      joint_velocities_(i) = msg->velocity[i];
     }
 
-    // Log the size of current_positions_ for debugging
-    ROS_INFO_STREAM("Received joint states with " << current_positions_.size() << " positions.");
+    received_joint_states_ = true;
 
-    // Mark that the joint state has been received
-    received_joint_state_ = true;
+    // Debug
+    ROS_INFO_STREAM("Joint Positions: " << joint_positions_.transpose());
+    ROS_INFO_STREAM("Joint Velocities: " << joint_velocities_.transpose());
+   }
 }
 
-// Function to compute joint velocities based on the potential field forces
-void PotentialFieldPlanner::computeJointVelocities() {
-//    if (!received_joint_state_) {
-//        ROS_WARN("Joint state feedback not received yet. Skipping velocity computation.");
-//        return;
-//    }
-//
-//    // Check that the size of the current_positions_ vector matches the default_joint_positions_
-//    if (current_positions_.size() != default_joint_positions_.size()) {
-//        ROS_ERROR("Size mismatch between current and default joint positions. Skipping velocity computation.");
-//        return;
-//    }
+void PotF::computePotentialField()
+{
+    // Compute the difference between the target and current joint positions
+    Eigen::Matrix<double, 7, 1> delta_position = default_ - joint_positions_;
 
-    // Compute the error between current and target positions
-    Eigen::VectorXd error = default_joint_positions_ - current_positions_;
+    // Compute the attractive potential field
+    reference_velocities_ = k_att_.cwiseProduct(delta_position);
 
-    // Compute the joint velocities based on the attractive potential
-    Eigen::VectorXd joint_velocities = k_att_ * error;
+    // Normalize the velocities if needed, based on max_velocity_ limits
+    for (int i = 0; i < 7; ++i) {
+        double velocity_magnitude = std::abs(reference_velocities_(i));
 
-    // Normalize the joint velocities if they exceed the maximum allowed velocity
-    for (int i = 0; i < joint_velocities.size(); ++i) {
-        if (std::abs(joint_velocities[i]) > max_velocity_) {
-            joint_velocities[i] = std::copysign(max_velocity_, joint_velocities[i]);
+        // Normalize the velocity if it exceeds the maximum allowed velocity
+        if (velocity_magnitude > max_velocity_(i)) {
+            reference_velocities_(i) *= (max_velocity_(i) / velocity_magnitude);
         }
     }
 
-    // Publish the computed joint velocities
-    publishJointVelocities(joint_velocities);
+    // Update the reference joint positions based on current positions and velocities
+    double delta_t = 1.0 / publish_rate_; // Time step (1/publish_rate)
+    reference_positions_ = joint_positions_ + reference_velocities_ * delta_t;
+
+    publishJointReferences();
 }
 
+// Publish reference joint positions and velocities
+void PotF::publishJointReferences()
+{
+  // Prepare reference position message
+  std_msgs::Float64MultiArray position_msg;
+  position_msg.data.resize(7);
+  for (size_t i = 0; i < 7; ++i) {
+    position_msg.data[i] = reference_positions_(i);  // Populate with reference joint positions
+  }
+  reference_position_pub_.publish(position_msg);
 
-// Helper function to publish joint velocities
-void PotentialFieldPlanner::publishJointVelocities(const Eigen::VectorXd& joint_velocities) {
-    // Create a message to hold the computed velocities
-    std_msgs::Float64MultiArray joint_velocity_msg;
+  // Prepare reference velocity message
+  std_msgs::Float64MultiArray velocity_msg;
+  velocity_msg.data.resize(7);
+  for (size_t i = 0; i < 7; ++i) {
+    velocity_msg.data[i] = reference_velocities_(i);  // Populate with reference joint velocities
+  }
+  reference_velocity_pub_.publish(velocity_msg);
 
-    // Assign the computed velocities to the message data
-    joint_velocity_msg.data.assign(joint_velocities.data(), joint_velocities.data() + joint_velocities.size());
-
-    // Publish the computed joint velocities to the appropriate topic
-    velocity_pub_.publish(joint_velocity_msg);
+  ROS_INFO("Published reference joint positions and velocities");
 }
 
-// Main function to run the node
-int main(int argc, char** argv) {
-    // Initialize the ROS node
-    ros::init(argc, argv, "potential_field_planner");
-    ros::NodeHandle nh;
-
-    // Instantiate the PotentialFieldPlanner class
-    PotentialFieldPlanner planner_node(nh);
-
-    // Set the loop rate based on the ROS parameter
-    int publish_rate;
-    nh.getParam("/publish_rate", publish_rate);
-    ros::Rate loop_rate(publish_rate);
-
-    // Main loop
-    while (ros::ok()) {
-        // Spin once to process incoming messages
-        ros::spinOnce();
-
-        // Compute and publish joint velocities
-        planner_node.computeJointVelocities();
-
-        // Sleep for the remainder of the loop
-        loop_rate.sleep();
-    }
-
-    return 0;
-}
