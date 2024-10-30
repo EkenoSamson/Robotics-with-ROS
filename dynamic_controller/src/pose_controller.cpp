@@ -139,6 +139,7 @@ void TaskSpaceDyn::init(std::string urdf_file_name) {
   // Initialise the joints' variables
   joint_positions_.setZero();
   joint_velocities_.setZero();
+  joint_acceleration_.setZero();
   reference_positions_.setZero();
   reference_velocities_.setZero();
 
@@ -184,18 +185,24 @@ void TaskSpaceDyn::jointStatesCallback(const sensor_msgs::JointState::ConstPtr& 
   // Process joint state feedback
   joint_positions_ = Eigen::VectorXd::Map(msg->position.data(), msg->position.size());
   joint_velocities_ = Eigen::VectorXd::Map(msg->velocity.data(), msg->velocity.size());
+
+  ROS_INFO(" Joint states received");
 }
 
 // Receive the reference positions of the joints
 void TaskSpaceDyn::referencePositionCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
   // Process reference joints' positions
   reference_positions_ = Eigen::VectorXd::Map(msg->data.data(), msg->data.size());
+
+  ROS_INFO("Reference position received");
 }
 
 // Receive the reference velocities for the joints
 void TaskSpaceDyn::referenceVelocityCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
   // Process reference joints' velocities
   reference_velocities_ = Eigen::VectorXd::Map(msg->data.data(), msg->data.size());
+
+  ROS_INFO("Reference velocity received");
 }
 
 // Receive the reference pose of the end_effector
@@ -204,6 +211,12 @@ void TaskSpaceDyn::referencePoseCallback(const geometry_msgs::Pose::ConstPtr& ms
   reference_pose_(0) = msg->position.x;
   reference_pose_(1) = msg->position.y;
   reference_pose_(2) = msg->position.z;
+
+  // Debugging: Print the reference pose received
+  ROS_INFO_STREAM("Received Reference Pose: "
+                  << "Position: [" << reference_pose_(0) << ", "
+                  << reference_pose_(1) << ", "
+                  << reference_pose_(2) << "] ");
 }
 
 // Receive the reference twist of the end_effector
@@ -212,6 +225,12 @@ void TaskSpaceDyn::referenceTwistCallback(const geometry_msgs::Twist::ConstPtr& 
   reference_twist_(0) = msg->linear.x;
   reference_twist_(1) = msg->linear.y;
   reference_twist_(2) = msg->linear.z;
+
+  // Debugging: Print the reference pose received
+  ROS_INFO_STREAM("Received Reference Twist: "
+                  << "Linear Twist: [" << reference_twist_(0) << ", "
+                  << reference_twist_(1) << ", "
+                  << reference_twist_(2) << "] ");
 }
 
 // Setting the Linear K and D
@@ -233,6 +252,7 @@ bool TaskSpaceDyn::setJointPDServiceCallback(highlevel_msgs::SetKD::Request &req
 // compute task space dynamics
 void TaskSpaceDyn::computeDynamics() {
   // Compute general dynamics
+  ROS_INFO("Computing Task Space Dynamics");
   pinocchio::computeAllTerms(model_, data_, joint_positions_, joint_velocities_);
   M_ = data_.M;  // Mass Matrix
   h_ = data_.nle;  // Nonlinear Effector Vector
@@ -260,6 +280,17 @@ void TaskSpaceDyn::computeDynamics() {
   eta_ = jacobian_pseudo_inverse_.transpose() * h_ - lambda_ * jacobian_dot_trans_ * joint_velocities_;
 
   // Compute desired task-space acceleration
+  // Debugging: Print the reference pose received
+  ROS_INFO_STREAM("Received Reference Pose: "
+                  << "Position: [" << reference_pose_(0) << ", "
+                  << reference_pose_(1) << ", "
+                  << reference_pose_(2) << "] ");
+  // Debugging: Print the reference pose received
+  ROS_INFO_STREAM("Received Reference Twist: "
+                  << "Linear Twist: [" << reference_twist_(0) << ", "
+                  << reference_twist_(1) << ", "
+                  << reference_twist_(2) << "] ");
+
   twist_error_ = reference_twist_ - end_effector_twist_;
   pose_error_ = reference_pose_ - end_effector_pose_;
   ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
@@ -275,8 +306,11 @@ void TaskSpaceDyn::computeDynamics() {
       // Compute Projection Matrix
       P_ = I_ - jacobian_.transpose() * (jacobian_ * M_ * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
 
-      // Compute joint torque
-      tau_joint_ = joints_stiffness_ * (reference_positions_ - joint_positions_) - joints_damping_ * reference_velocities_;
+      // Compute joint acceleration
+      joint_acceleration_ = joints_stiffness_ * (reference_positions_ - joint_positions_) - joints_damping_ * (reference_velocities_ - joint_velocities_);
+
+      // Compute Joint Torque
+      tau_joint_ = M_ * joint_acceleration_ + h_;
 
       // Compute Null Torque
       tau_null_ = P_ * tau_joint_;
@@ -285,13 +319,23 @@ void TaskSpaceDyn::computeDynamics() {
       tau_total_ = tau_task_ + tau_null_;
 
       // Populate Message
-      for (int i = 0; i < num_joints_; i++) {
+      for (int i = 0; i < num_joints_; i++)
         joint_torque_msg_.data[i] = tau_total_(i);
-      }
+
+      // Debugging: Print the joint torques being published
+      ROS_INFO_STREAM("Publishing Joint Torques: ");
+      for (int i = 0; i < num_joints_; i++)
+        ROS_INFO_STREAM("Joint " << i << ": " << joint_torque_msg_.data[i]);
+
   } else {
     // Populate message with task-space torque
     for (int i = 0; i < num_joints_; i++)
       joint_torque_msg_.data[i] = tau_task_(i);
+
+    // Debugging: Print the joint torques being published
+    ROS_INFO_STREAM("Publishing Joint Torques: ");
+    for (int i = 0; i < num_joints_; i++)
+      ROS_INFO_STREAM("Joint " << i << ": " << joint_torque_msg_.data[i]);
   }
 
   // Publish the joint torques

@@ -15,7 +15,10 @@ CUBIC::CUBIC(ros::NodeHandle& nh) : nh_(nh) {
     // Initialise the variables
 
     // Read the parameters
-    readParameters();
+    if (!readParameters()) {
+      ROS_ERROR("Failed to read parameters.");
+      ros::requestShutdown();
+    }
 
     // Subscrive to "/firefly/ground_truth/pose"
     current_pose_sub_ = nh_.subscribe(feedback_pose_topic_, 10, &CUBIC::poseCallback, this);
@@ -28,7 +31,7 @@ CUBIC::CUBIC(ros::NodeHandle& nh) : nh_(nh) {
     twist_pub_ = nh_.advertise<geometry_msgs::Twist>(reference_twist_topic_, 1);
 
     // Publish the default translation
-    pubDefaultTranslation();
+    // pubDefaultTranslation();
 
     ROS_INFO("CUBIC_POLYNOMIAL_PLANNER NODE INITIALIZED");   // for debugging
 }
@@ -57,6 +60,7 @@ bool CUBIC::moveToCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs:
     starting_time_ = ros::Time::now().toSec();
 
     res.success = true;
+    target_received_ = true;
     return true;
 }
 
@@ -96,39 +100,40 @@ void CUBIC::update() {
 }
 
 // Function to read the ROS parameters
-void CUBIC::readParameters() {
+bool CUBIC::readParameters() {
     // Retrieve the publish rate from the parameter server
     if (!nh_.getParam("/publish_rate", publish_rate_)) {
         ROS_ERROR("Parameter publish_rate not set");
-        publish_rate_ = 500;                                // Set to 500Hz if not set
+		return false;
     }
 
     // feedback_pose_ subscriber
-    if (!nh_.getParam("/feedback_pose_topic", feedback_pose_topic_)) {
-             ROS_ERROR("Parameter feedback_pose_topic not set");
-             feedback_pose_topic_ = "/gen3/feedback/pose";
+    if (!nh_.getParam("/topic_names/fbk_hand_pose", feedback_pose_topic_)) {
+         ROS_ERROR("Parameter feedback_pose_topic not set");
+         return false;
     }
 
     // reference_pose publisher
-    if (!nh_.getParam("/reference_pose_topic", reference_pose_topic_)) {
-             ROS_ERROR("Parameter reference_pose_topic not set");
-             reference_pose_topic_ = "/gen3/reference/pose";
+    if (!nh_.getParam("/topic_names/ref_hand_pose", reference_pose_topic_)) {
+         ROS_ERROR("Parameter reference_pose_topic not set");
+         return false;
     }
 
     // reference_twist_ publisher
-    if (!nh_.getParam("/reference_twist_topic", reference_twist_topic_)) {
-             ROS_ERROR("Parameter reference_twist_topic not set");
-             reference_twist_topic_ = "/gen3/reference/twist";
+    if (!nh_.getParam("/topic_names/ref_hand_twist", reference_twist_topic_)) {
+         ROS_ERROR("Parameter reference_twist_topic not set");
+         return false;
     }
 
     // default_translation for linear
     std::vector<double> linear_default_;
-    if (!nh_.getParam("/gen3/linear/default", linear_default_) || linear_default_.size() != 3) {
-      		ROS_WARN("Default translation not set or incorrect size, setting to [0, 0, 0].");
-      		default_translation_.setZero();
+    if (!nh_.getParam("/gen3/linear/default", linear_default_)) {
+      	ROS_ERROR("Default translation not set or incorrect size");
+      	return false;
 	} else {
-      		default_translation_ = Eigen::Vector3d(linear_default_.data());
+      	default_translation_ = Eigen::Vector3d(linear_default_.data());
     }
+    return true;
 }
 
 // Handle default translation
@@ -148,6 +153,16 @@ void CUBIC::pubDefaultTranslation() {
   default_pose_.orientation.w = 1.0;
 
   pose_pub_.publish(default_pose_);
+
+  // Debugging: Print the pose being published
+    ROS_INFO_STREAM("Publishing Default Translation: "
+                    << "Position: [" << default_pose_.position.x << ", "
+                    << default_pose_.position.y << ", "
+                    << default_pose_.position.z << "] "
+                    << "Orientation: [" << default_pose_.orientation.x << ", "
+                    << default_pose_.orientation.y << ", "
+                    << default_pose_.orientation.z << ", "
+                    << default_pose_.orientation.w << "]");
 }
 
 

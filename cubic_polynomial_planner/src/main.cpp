@@ -20,11 +20,14 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-        ros::spinOnce();                        // Processes/tiggers callbacks
-        if (planner.duration_ > 0.0) {
-            planner.update();
-        }
-        loop_rate.sleep();                      // Sleep to maintain the loop rate of 500Hz
+      if (!planner.target_received_)
+        planner.pubDefaultTranslation();
+
+      ros::spinOnce();                        // Processes/tiggers callbacks
+      if (planner.duration_ > 0.0) {
+        planner.update();
+      }
+      loop_rate.sleep();                      // Sleep to maintain the loop rate of 500Hz
     }
 
     return 0;                                   // Exit the program gracefully

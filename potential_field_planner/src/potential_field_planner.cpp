@@ -93,9 +93,9 @@ void PotF::jointStatesCallBack(const sensor_msgs::JointState::ConstPtr& msg)
 
     received_joint_states_ = true;
 
-    // Debug
-    ROS_INFO_STREAM("Joint Positions: " << joint_positions_.transpose());
-    ROS_INFO_STREAM("Joint Velocities: " << joint_velocities_.transpose());
+//    // Debug
+//    ROS_INFO_STREAM("Joint Positions: " << joint_positions_.transpose());
+//    ROS_INFO_STREAM("Joint Velocities: " << joint_velocities_.transpose());
    }
 }
 
@@ -142,9 +142,9 @@ void PotF::publishJointReferences()
   }
   reference_velocity_pub_.publish(velocity_msg);
 
-  // Debugging
-  ROS_INFO("Published reference joint positions and velocities");
-  ROS_INFO_STREAM("Reference Positions: " << reference_positions_.transpose());
-  ROS_INFO_STREAM("Reference Velocities: " << reference_velocities_.transpose());
+//  // Debugging
+//  ROS_INFO("Published reference joint positions and velocities");
+//  ROS_INFO_STREAM("Reference Positions: " << reference_positions_.transpose());
+//  ROS_INFO_STREAM("Reference Velocities: " << reference_velocities_.transpose());
 }
 

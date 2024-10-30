@@ -24,7 +24,7 @@ class CUBIC
 
         // Helper functions
         void update();                                           // Do the calculation for trajectory
-        void readParameters();                                   // Handle Paramaters
+        bool readParameters();                                   // Handle Paramaters
         void pubDefaultTranslation();							 // Handle Default pose
 
         // Global variables
@@ -32,6 +32,7 @@ class CUBIC
         double duration_ = 0.0;                                 // How long should the flight/moving take?
         double publish_rate_;                                   // Publish_rate
         Eigen::Matrix<double, 3, 1> default_translation_;		// Linear default translation
+        bool target_received_ = false;
 
 
     private:

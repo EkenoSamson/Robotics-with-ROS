@@ -93,6 +93,7 @@ class TaskSpaceDyn {
     // Joints
     Eigen::Matrix<double, 7, 1> joint_positions_;
     Eigen::Matrix<double, 7, 1> joint_velocities_;
+    Eigen::Matrix<double, 7, 1> joint_acceleration_;
     Eigen::Matrix<double, 7, 1> reference_positions_;
     Eigen::Matrix<double, 7, 1> reference_velocities_;
 
