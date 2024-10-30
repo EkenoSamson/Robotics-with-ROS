@@ -21,16 +21,16 @@ class PotF
     void jointStatesCallBack(const sensor_msgs::JointState::ConstPtr& msg);
 
     // Helper functions
-    void readParameters();
+    bool readParameters();
     void computePotentialField();
     void publishJointReferences();
 
 
     // Public variables
     double publish_rate_;
-    Eigen::Matrix<double, 7, 1> default_;      // Default joint positions (7 joints)
-    Eigen::Matrix<double, 7, 1> k_att_;        // Attractive potential gains (7 joints)
-    Eigen::Matrix<double, 7, 1> max_velocity_; // Maximum joint velocities (7 joints)
+    Eigen::Matrix<double, 7, 1> default_;        // Default joint positions (7 joints)
+    double k_att_;                              // Attractive potential gains (7 joints)
+    double max_velocity_;                       // Maximum joint velocities (7 joints)
 
 
     // flags
@@ -50,10 +50,12 @@ class PotF
     // Joint positions and velocities
     Eigen::Matrix<double, 7, 1> joint_positions_;
     Eigen::Matrix<double, 7, 1> joint_velocities_;
+    Eigen::Matrix<double, 7, 1> delta_position_;
 
     // reference positions and velocities (to be published)
     Eigen::Matrix<double, 7, 1> reference_positions_;
     Eigen::Matrix<double, 7, 1> reference_velocities_;
+    double velocity_magnitude;
 
     // Subscribers and Publishers topics
     std::string joint_states_sub_topic_;

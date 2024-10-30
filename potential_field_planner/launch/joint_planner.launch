@@ -1,6 +1,4 @@
 <launch>
   <node name="joint_planner" pkg="potential_field_planner" type="joint_planner" output="screen">
-    <param name="/gen3/reference/position_topic" value="/gen3/reference/position"/>
-    <param name="/gen3/reference/velocity_topic" value="/gen3/reference/velocity"/>
   </node>
 </launch>

@@ -1,21 +1,21 @@
-#include "dynamic_controller.hpp"
+#include "joint_controller.hpp"
 
 /*
- * DYN - class for inverse dynamics
+ * JointSpaceDyn - class for inverse dynamics
  * Description: Perform joint space inverse dynamics
  * Author: Ekeno
  ***********************************************
  */
 
 // constructor
-DYN::DYN(ros::NodeHandle& nh) : nh_(nh) {
+JointSpaceDyn::JointSpaceDyn(ros::NodeHandle& nh) : nh_(nh) {
   // Initialise variables
   publish_rate_ = 500;
 
 
   // Read Parameters
   if (!readParameters() ) {
-    ROS_ERROR("[DYN] Could not read parameters. Shut down");
+    ROS_ERROR("[JointSpaceDyn] Could not read parameters. Shut down");
     ros::requestShutdown();
   }
   // Initiate the model
@@ -25,27 +25,32 @@ DYN::DYN(ros::NodeHandle& nh) : nh_(nh) {
   joint_effort_pub_ = nh_.advertise<std_msgs::Float64MultiArray>(joint_effort_command_topic_, 10);
 
   // Set up subscribers using the parameter-loaded topics
-  joint_states_sub_ = nh_.subscribe(joint_states_topic_, 10, &DYN::jointStatesCallback, this);
-  reference_position_sub_ = nh_.subscribe(reference_position_topic_, 10, &DYN::referencePositionCallback, this);
-  reference_velocity_sub_ = nh_.subscribe(reference_velocity_topic_, 10, &DYN::referenceVelocityCallback, this);
+  joint_states_sub_ = nh_.subscribe(joint_states_topic_, 10, &JointSpaceDyn::jointStatesCallback, this);
+  reference_position_sub_ = nh_.subscribe(reference_position_topic_, 10, &JointSpaceDyn::referencePositionCallback, this);
+  reference_velocity_sub_ = nh_.subscribe(reference_velocity_topic_, 10, &JointSpaceDyn::referenceVelocityCallback, this);
+
+  // Debug:
+  ROS_INFO("Subscribing to %s", joint_states_topic_.c_str());
+  ROS_INFO("Publishing to %s", reference_position_topic_.c_str());
+  ROS_INFO("Publishing to %s", reference_velocity_topic_.c_str());
 
   // Service
-  set_pd_service_ = nh_.advertiseService("/joint_controller/set_joint_pd", &DYN::setPDServiceCallback, this);
+  set_pd_service_ = nh_.advertiseService("/joint_controller/set_joint_pd", &JointSpaceDyn::setPDServiceCallback, this);
+
+  // Debug
+  ROS_INFO("Joint controller object built");
 }
 
 // Reading Parameters
-bool DYN::readParameters() {
+bool JointSpaceDyn::readParameters() {
   // Read stiffness and damping from parameter server
-  nh_.param("/K_J", stiffness_, 0.1);
-  nh_.param("/D_J", damping_, 0.1);
+  nh_.param("/joint_stiffness", stiffness_, 0.1);
+  nh_.param("/joint_damping", damping_, 0.1);
 
   // Read the URDF file and publish rate if needed
   if ( !nh_.getParam("/publish_rate", publish_rate_) ) {
     ROS_ERROR("[controller_node] cannot read publish_rate") ;
     return false ;
-  }
-  else {
-    ROS_DEBUG_STREAM ("[controller_node] publish_rate = " << publish_rate_ ) ;
   }
 
   if (!nh_.getParam("/gen3/urdf_file_name", urdf_file_name_) ) {
@@ -54,16 +59,31 @@ bool DYN::readParameters() {
   }
 
   // Get parameters for topic names
-  nh_.getParam("/joint_states_topic", joint_states_topic_);
-  nh_.getParam("/reference_position_topic", reference_position_topic_);
-  nh_.getParam("/reference_velocity_topic", reference_velocity_topic_);
-  nh_.getParam("/joint_group_effort_controller_command", joint_effort_command_topic_);
+  if (!nh_.getParam("/topic_names/fbk_joint_state", joint_states_topic_)) {
+    ROS_ERROR("cannot read topic names");
+    return false;
+  }
+
+  if (!nh_.getParam("/topic_names/ref_joint_pos", reference_position_topic_)) {
+    ROS_ERROR("cannot read reference position topic names");
+    return false;
+  }
+
+  if (!nh_.getParam("/topic_names/ref_joint_vel", reference_velocity_topic_)) {
+    ROS_ERROR("cannot read reference velocity topic names");
+    return false;
+  }
+
+  if (!nh_.getParam("/topic_names/cmd_joint_tau", joint_effort_command_topic_)) {
+    ROS_ERROR("cannot read joint effort command topic");
+    return false;
+  }
 
   return true ;
 }
 
 // Initiate the model
-void DYN::init(std::string urdf_file_name_) {
+void JointSpaceDyn::init(std::string urdf_file_name_) {
   // Build the Pinocchio model from the URDF file
   pinocchio::urdf::buildModel(urdf_file_name_, model_, false);
 
@@ -87,24 +107,24 @@ void DYN::init(std::string urdf_file_name_) {
 
 }
 
-void DYN::jointStatesCallback(const sensor_msgs::JointState::ConstPtr& msg) {
+void JointSpaceDyn::jointStatesCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   // Process joint state feedback
   joint_positions_ = Eigen::VectorXd::Map(msg->position.data(), msg->position.size());
   joint_velocities_ = Eigen::VectorXd::Map(msg->velocity.data(), msg->velocity.size());
 }
 
-void DYN::referencePositionCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+void JointSpaceDyn::referencePositionCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
   // Process reference joint position
   reference_positions_ = Eigen::VectorXd::Map(msg->data.data(), msg->data.size());
 }
 
-void DYN::referenceVelocityCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+void JointSpaceDyn::referenceVelocityCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
   // Process reference joint velocity
   reference_velocities_ = Eigen::VectorXd::Map(msg->data.data(), msg->data.size());
 }
 
 // Service
-bool DYN::setPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res) {
+bool JointSpaceDyn::setPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res) {
   // Receive the user stiffness_ and damping_
   stiffness_ = req.k;
   damping_ = req.d;
@@ -112,21 +132,22 @@ bool DYN::setPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_ms
 }
 
 // Compute Joint Space Inverse Dynamic Controller
-void DYN::computeDynamics() {
+void JointSpaceDyn::computeDynamics() {
   // compute general terms
   pinocchio::computeAllTerms(model_, data_, joint_positions_, joint_velocities_);
   M_ = data_.M ;       	// mass matrix
   h_ = data_.nle ;	    // coriolis, centrifugal, and gravity
 
   // Desired accelleration
-  Eigen::VectorXd reference_accel_ = Eigen::VectorXd::Zero(dim_joints_);           //(reference_velocities_ - joint_velocities_) * publish_rate_ ;
+  Eigen::VectorXd reference_accel_ = Eigen::VectorXd::Zero(dim_joints_);       // Set to Zero
+  Eigen::VectorXd accel_command_ = Eigen::VectorXd::Zero(dim_joints_);
 
   // velocity error and position error
   Eigen::VectorXd veloc_error_ = reference_velocities_ - joint_velocities_;
   Eigen::VectorXd pos_error_ = reference_positions_ - joint_positions_;
 
-  // Acceleration command
-  Eigen::VectorXd accel_command_ = reference_accel_ + damping_ * veloc_error_ + stiffness_ * pos_error_ ;
+  // Calculate acceleration command based on errors
+  accel_command_ = reference_accel_ + damping_ * veloc_error_ + stiffness_ * pos_error_ ;
 
   // Joint space inverse dynamics controller
   Eigen::VectorXd joint_torque_ = M_ * accel_command_ + h_;

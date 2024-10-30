@@ -21,30 +21,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c7dd7437-c7fa-4468-bb38-89a8b529cc48" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../highlevel_msgs/.idea/highlevel_msgs.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/cmake-build-debug/CMakeFiles/clion-Debug-log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/cmake-build-debug/CMakeFiles/clion-Debug-log.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/include/pose_planner.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/launch/pose_planner.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/launch/pose_planner.launch" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/package.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/src/pose_planner.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../highlevel_msgs/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../highlevel_msgs/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../highlevel_msgs/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../highlevel_msgs/package.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../kinematic_controller/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../kinematic_controller/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../kinematic_controller/include/kinematic_controller.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../kinematic_controller/include/kinematic_controller.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../kinematic_controller/launch/controller.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../kinematic_controller/launch/controller.launch" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../kinematic_controller/src/kinematic_controller.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../kinematic_controller/src/kinematic_controller.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.29.6/CMakeSystem.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.29.6/CMakeSystem.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeConfigureLog.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeConfigureLog.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/clion-Debug-log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/clion-Debug-log.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/potential_field_planner.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/include/potential_field_planner.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/launch/joint_planner.launch" beforeDir="false" afterPath="$PROJECT_DIR$/launch/joint_planner.launch" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/package.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/potential_field_planner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/potential_field_planner.cpp" afterDir="false" />
-    </list>
+    <list default="true" id="c7dd7437-c7fa-4468-bb38-89a8b529cc48" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -106,6 +83,7 @@
       <workItem from="1730040643079" duration="444000" />
       <workItem from="1730041544849" duration="595000" />
       <workItem from="1730062871347" duration="599000" />
+      <workItem from="1730073185714" duration="1747000" />
     </task>
     <servers />
   </component>

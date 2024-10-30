@@ -1,5 +1,12 @@
 #include "pose_controller.hpp"
 
+/*
+ * TaskSpaceDyn - class for inverse dynamics
+ * Description: Perform task space inverse dynamics with redundancy
+ * Author: Ekeno
+ ***********************************************
+ */
+
 // Constructor
 TaskSpaceDyn::TaskSpaceDyn(ros::NodeHandle& nh) : nh_(nh) {
   // Read Parameters
@@ -39,75 +46,75 @@ bool TaskSpaceDyn::readParameters() {
   // Load the publish rate
   if (!nh_.getParam("/publish_rate", publish_rate_)) {
     ROS_ERROR("Could not read publish_rate!");
-    publish_rate_ = 500;
+    return false;
   }
 
   // Load redundancy parameter
   if (!nh_.getParam("controller/with_redundancy", with_redundancy_)) {
     ROS_ERROR("Could not read redundancy flag!");
-    with_redundancy_ = false;
+    return false;
   }
 
   // Load end-effector stiffness
-  if (!nh_.getParam("/K_E", end_stiffness_)) {
+  if (!nh_.getParam("/end_effector_stiffness", end_stiffness_)) {
     ROS_ERROR("Could not read end-effector stiffness!");
-    end_stiffness_ = 0.1;
+    return false;
   }
 
   // Load end-effector damping
-  if (!nh_.getParam("/D_E", end_damping_)) {
+  if (!nh_.getParam("/end_effector_damping", end_damping_)) {
     ROS_ERROR("Could not read end-effector damping!");
-    end_damping_ = 0.1;
+    return false;
   }
 
   // Load joints stiffness
-  if (!nh_.getParam("/K_J", joints_stiffness_)) {
+  if (!nh_.getParam("/joint_stiffness", joints_stiffness_)) {
     ROS_ERROR("Could not read joints stiffness!");
-    joints_stiffness_ = 0.1;
+    return false;
   }
 
   // Load joints damping
-  if (!nh_.getParam("/D_J", joints_damping_)) {
+  if (!nh_.getParam("/joint_damping", joints_damping_)) {
     ROS_ERROR("Could not read joints damping!");
-    joints_damping_ = 0.1;
+    return false;
   }
 
   // Load subscibers topics
-  if (!nh_.getParam("/joint_states_topic", joint_states_topic_)) {
+  if (!nh_.getParam("/topic_names/fbk_joint_state", joint_states_topic_)) {
     ROS_ERROR("Could get the joint states topic!");
     return false;
   }
-  if (!nh_.getParam("/reference_position_topic", reference_position_topic_)) {
+  if (!nh_.getParam("/topic_names/ref_joint_pos", reference_position_topic_)) {
     ROS_ERROR("Could get the reference position topic!");
     return false;
   }
-  if (!nh_.getParam("/reference_velocity_topic", reference_velocity_topic_)) {
+  if (!nh_.getParam("/topic_names/ref_joint_vel", reference_velocity_topic_)) {
     ROS_ERROR("Could get the reference velocity topic!");
     return false;
   }
-  if (!nh_.getParam("/reference_pose_topic", reference_pose_topic_)) {
+  if (!nh_.getParam("/topic_names/ref_hand_pose", reference_pose_topic_)) {
     ROS_ERROR("Could get the reference pose topic!");
     return false;
   }
-  if (!nh_.getParam("/reference_twist_topic", reference_twist_topic_)) {
+  if (!nh_.getParam("/topic_names/ref_hand_twist", reference_twist_topic_)) {
     ROS_ERROR("Could get the reference twist topic!");
     return false;
   }
 
   // Load joint torque publisher topic
-  if (!nh_.getParam("/joint_group_effort_controller_command", joint_effort_command_topic_)) {
+  if (!nh_.getParam("/topic_names/cmd_joint_tau", joint_effort_command_topic_)) {
     ROS_ERROR("Could get the reference position topic!");
     return false;
   }
 
   // Load end effector feedback pose topic
-  if (!nh_.getParam("/feedback_pose_topic", feedback_pose_topic_)) {
+  if (!nh_.getParam("/topic_names/fbk_hand_pose", feedback_pose_topic_)) {
     ROS_ERROR("Could get the reference pose topic!");
     return false;
   }
 
   // Load end effector feedback twist topic
-  if (!nh_.getParam("/feedback_twist_topic", feedback_twist_topic_)) {
+  if (!nh_.getParam("/topic_names/fbk_hand_twist", feedback_twist_topic_)) {
     ROS_ERROR("Could get the reference twist topic!");
     return false;
   }
@@ -140,15 +147,35 @@ void TaskSpaceDyn::init(std::string urdf_file_name) {
   end_effector_twist_.setZero();
   reference_pose_.setZero();
   reference_twist_.setZero();
+  ee_acc_cmd_.setZero();
+  ee_ref_acc_.setZero();
+  twist_error_.setZero();
+  pose_error_.setZero();
+
 
   // Jacobians
   jacobian_ = Eigen::MatrixXd::Zero(6, num_joints_);
   jacobian_dot_ = Eigen::MatrixXd::Zero(6, num_joints_);
   jacobian_pseudo_inverse_ = Eigen::MatrixXd::Zero(6, num_joints_);
+  jacobian_trans_.setZero();
+  jacobian_dot_trans_.setZero();
 
   // Mass Matrix and Coriolis, Centrifugal and gravity
   M_ = Eigen::MatrixXd::Zero(num_joints_, num_joints_);
   h_ = Eigen::VectorXd::Zero(num_joints_);
+  lambda_.setZero();
+  eta_.setZero();
+  wrench_.setZero();
+  tau_task_.setZero();
+  tau_joint_.setZero();
+  tau_total_.setZero();
+
+  // Null Space
+  P_.setZero();
+  I_.setIdentity();
+
+  // Message
+  joint_torque_msg_.data.resize(num_joints_);
 }
 
 // Callbacks
@@ -213,58 +240,58 @@ void TaskSpaceDyn::computeDynamics() {
   // Get the Jacobian and its time derivative
   pinocchio::getJointJacobian(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_);
   pinocchio::getJointJacobianTimeVariation(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_dot_);
+  jacobian_trans_ = jacobian_.topRows(3);
+  jacobian_dot_trans_ = jacobian_.topRows(3);
 
   // End-effector pose and twist
   end_effector_pose_ = data_.oMi[hand_id_].translation();
-  end_effector_twist_ = jacobian_.topRows(3) * joint_velocities_;
+  end_effector_twist_ = jacobian_trans_ * joint_velocities_;
 
   pubEndFeedback();
 
-  // Log Jacobian dimensions
-  ROS_INFO_STREAM("Jacobian dimensions: " << jacobian_.rows() << " x " << jacobian_.cols());
-
   // Compute the pseudo-inverse of the Jacobian matrix
-  ROS_INFO("Computing Jacobian pseudo-inverse");
-  ROS_INFO_STREAM("Jacobian dimensions for pseudo-inverse calculation: " << jacobian_.rows() << " x " << jacobian_.cols());
-  ROS_INFO_STREAM("M_ dimensions: " << M_.rows() << " x " << M_.cols());
+  jacobian_pseudo_inverse_ = jacobian_trans_.transpose() * (jacobian_trans_ * jacobian_trans_.transpose()).inverse();
 
-  jacobian_pseudo_inverse_ = jacobian_.transpose() * (jacobian_ * jacobian_.transpose()).inverse();
-  ROS_INFO("Jacobian pseudo-inverse computed successfully");
 
   // Compute task-space mass matrix (Lambda)
-  ROS_INFO("Computing Lambda (task-space mass matrix)");
-  Eigen::MatrixXd lambda_ = jacobian_pseudo_inverse_.transpose() * M_ * jacobian_pseudo_inverse_;
-  ROS_INFO_STREAM("Lambda dimensions: " << lambda_.rows() << " x " << lambda_.cols());
+  lambda_ = jacobian_pseudo_inverse_.transpose() * M_ * jacobian_pseudo_inverse_;
 
   // Compute task-space bias forces (eta)
-  ROS_INFO("Computing eta (task-space bias forces)");
-  ROS_INFO_STREAM("Jacobian_dot dimensions: " << jacobian_dot_.rows() << " x " << jacobian_dot_.cols());
-  Eigen::VectorXd eta_ = jacobian_pseudo_inverse_.transpose() * h_ - lambda_ * jacobian_dot_ * joint_velocities_;
-  ROS_INFO_STREAM("Eta dimensions: " << eta_.rows() << " x " << eta_.cols());
+  eta_ = jacobian_pseudo_inverse_.transpose() * h_ - lambda_ * jacobian_dot_trans_ * joint_velocities_;
 
   // Compute desired task-space acceleration
-  ROS_INFO("Computing task-space acceleration command");
-  Eigen::VectorXd ee_ref_acc_ = Eigen::VectorXd::Zero(3);
-  Eigen::VectorXd twist_error_ = reference_twist_ - end_effector_twist_;
-  Eigen::VectorXd pose_error_ = reference_pose_ - end_effector_pose_;
-  Eigen::VectorXd ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_ * pose_error_) + (end_damping_ * twist_error_);
-  ROS_INFO_STREAM("ee_acc_cmd_ dimensions: " << ee_acc_cmd_.rows() << " x " << ee_acc_cmd_.cols());
+  twist_error_ = reference_twist_ - end_effector_twist_;
+  pose_error_ = reference_pose_ - end_effector_pose_;
+  ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
+  ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_ * pose_error_) + (end_damping_ * twist_error_);
 
   // Compute the task-space wrench
-  ROS_INFO("Computing wrench");
-  ROS_INFO_STREAM("Lambda dimensions: " << lambda_.rows() << " x " << lambda_.cols());
-  Eigen::VectorXd wrench_ = lambda_.topRows(3).transpose() * ee_acc_cmd_ + eta_;
-  ROS_INFO_STREAM("Wrench dimensions: " << wrench_.rows() << " x " << wrench_.cols());
+  wrench_ = lambda_ * ee_acc_cmd_ + eta_;
 
   // Compute the joint torques
-  ROS_INFO("Computing joint torques");
-  Eigen::VectorXd tau_ = jacobian_.transpose() * wrench_;
-  ROS_INFO_STREAM("Tau dimensions: " << tau_.rows() << " x " << tau_.cols());
+  tau_task_ = jacobian_trans_.transpose() * wrench_;
 
-  // Populate Message
-  joint_torque_msg_.data.resize(num_joints_);
-  for (int i = 0; i < num_joints_; i++) {
-    joint_torque_msg_.data[i] = tau_(i);
+  if (with_redundancy_) {
+      // Compute Projection Matrix
+      P_ = I_ - jacobian_.transpose() * (jacobian_ * M_ * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
+
+      // Compute joint torque
+      tau_joint_ = joints_stiffness_ * (reference_positions_ - joint_positions_) - joints_damping_ * reference_velocities_;
+
+      // Compute Null Torque
+      tau_null_ = P_ * tau_joint_;
+
+      // Compute total torque
+      tau_total_ = tau_task_ + tau_null_;
+
+      // Populate Message
+      for (int i = 0; i < num_joints_; i++) {
+        joint_torque_msg_.data[i] = tau_total_(i);
+      }
+  } else {
+    // Populate message with task-space torque
+    for (int i = 0; i < num_joints_; i++)
+      joint_torque_msg_.data[i] = tau_task_(i);
   }
 
   // Publish the joint torques

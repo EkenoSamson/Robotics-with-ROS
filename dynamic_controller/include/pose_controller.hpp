@@ -101,15 +101,34 @@ class TaskSpaceDyn {
     Eigen::Matrix<double, 3, 1> reference_twist_;
     Eigen::Matrix<double, 3, 1> end_effector_pose_;
     Eigen::Matrix<double, 3, 1> end_effector_twist_;
+    Eigen::Matrix<double, 3, 1> ee_ref_acc_;
+    Eigen::Matrix<double, 3, 1> twist_error_;
+    Eigen::Matrix<double, 3, 1> pose_error_;
+    Eigen::Matrix<double, 3, 1> ee_acc_cmd_;
 
     // Jacobian
     Eigen::MatrixXd jacobian_;
     Eigen::MatrixXd jacobian_dot_;
     Eigen::MatrixXd jacobian_pseudo_inverse_;
+    Eigen::Matrix<double, 3, 7> jacobian_trans_;
+    Eigen::Matrix<double, 3, 7> jacobian_dot_trans_;
+
+    // Forces
+    Eigen::Matrix<double, 3, 3> lambda_;			// Task-space Mass Matrix
+    Eigen::Matrix<double, 3, 1> eta_;				// coriolis, centrifugal and gravity vector in TaskSpace
+    Eigen::Matrix<double, 3, 1> wrench_;			// Task-space force
+    Eigen::Matrix<double, 7, 1> tau_task_;			// Task Joint Torque
+    Eigen::Matrix<double, 7, 1> tau_joint_;
+    Eigen::Matrix<double, 7, 1> tau_null_;
+    Eigen::Matrix<double, 7, 1> tau_total_;
 
     // Mass Matrix, (Coriolis and Centrifugal force and gravity vector)
     Eigen::MatrixXd M_;
     Eigen::VectorXd h_;
+
+    // Null space Redundancy
+    Eigen::Matrix<double, 7, 7> P_;				// Projection Matrix
+    Eigen::Matrix<double, 7, 7> I_;				// Identity Matrix
 
 };
 

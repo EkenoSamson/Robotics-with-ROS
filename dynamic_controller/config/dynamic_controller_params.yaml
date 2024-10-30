@@ -1,0 +1,12 @@
+#Joint Space
+# joint stiffness and damping parameters
+
+joint_stiffness: 55.0
+joint_damping: 8.0
+
+# Task Space
+# End-effector stiffness and damping parameters
+
+end_effector_stiffness: 0.5
+end_effector_damping: 0.1
+

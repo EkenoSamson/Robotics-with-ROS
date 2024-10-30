@@ -1,5 +1,5 @@
-#ifndef DYNAMIC_CONTROLLER_HPP
-#define DYNAMIC_CONTROLLER_HPP
+#ifndef JOINT_CONTROLLER_HPP
+#define JOINT_CONTROLLER_HPP
 
 #include <pinocchio/multibody/model.hpp>
 #include <pinocchio/multibody/data.hpp>
@@ -20,10 +20,10 @@
 #include <ros/ros.h>
 
 
-class DYN {
+class JointSpaceDyn {
 public:
   // Constructor and Initiator
-  DYN(ros::NodeHandle& nh);
+  JointSpaceDyn(ros::NodeHandle& nh);
   void init(std::string urdf_file_name_) ;
 
   // Helper functions

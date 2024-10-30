@@ -1,4 +1,4 @@
-#include "dynamic_controller.hpp"
+#include "joint_controller.hpp"
 
 int main(int argc, char **argv)
 {
@@ -7,7 +7,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   //Instance of class DYN
-  DYN controller(nh);
+  JointSpaceDyn controller(nh);
 
   ros::Rate loop_rate(controller.publish_rate_);
 

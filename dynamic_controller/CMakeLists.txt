@@ -72,8 +72,8 @@ include_directories(
 ## Add Executable: joint_controller_node
 # Add an executable for the node 'joint_controller' node
 add_executable(joint_controller
-        src/dynamic_controller.cpp  # The main source file
-        src/controller.cpp          # Controller logic implementation
+        src/joint_controller_main.cpp  # The main source file
+        src/joint_controller.cpp          # Controller logic implementation
 )
 
 # Add an executable for the node 'pose_controller' node
