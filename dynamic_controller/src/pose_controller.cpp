@@ -304,10 +304,10 @@ void TaskSpaceDyn::computeDynamics() {
 
   if (with_redundancy_) {
       // Compute Projection Matrix
-      P_ = I_ - jacobian_.transpose() * (jacobian_ * M_ * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
+      P_ = I_ - jacobian_trans_.transpose() * (jacobian_trans_ * M_.inverse() * jacobian_trans_.transpose()).inverse() * jacobian_trans_ * M_.inverse();
 
       // Compute joint acceleration
-      joint_acceleration_ = joints_stiffness_ * (reference_positions_ - joint_positions_) - joints_damping_ * (reference_velocities_ - joint_velocities_);
+      joint_acceleration_ = joints_stiffness_ * (reference_positions_ - joint_positions_) + joints_damping_ * (reference_velocities_ - joint_velocities_);
 
       // Compute Joint Torque
       tau_joint_ = M_ * joint_acceleration_ + h_;
@@ -355,6 +355,11 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_pose.orientation.z = 0;
   ee_pose.orientation.w = 1;
 
+  ROS_INFO_STREAM("Received feedback Pose: "
+                  << "Position: [" << end_effector_pose_(0) << ", "
+                  << end_effector_pose_(1) << ", "
+                  << end_effector_pose_(2) << "] ");
+
   end_effector_pose_pub_.publish(ee_pose);  // Publish pose
 
 
@@ -366,6 +371,11 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_twist.angular.x = 0;
   ee_twist.angular.y = 0;
   ee_twist.angular.z = 0;
+
+  ROS_INFO_STREAM("Received feedback Twist: "
+                  << "linear: [" << end_effector_twist_(0) << ", "
+                  << end_effector_twist_(1) << ", "
+                  << end_effector_twist_(2) << "] ");
 
   end_effector_twist_pub_.publish(ee_twist);  // Publish twist
 }
