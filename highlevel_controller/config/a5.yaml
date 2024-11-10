@@ -1,0 +1,4 @@
+# Parameter to indicate whether to launch a kinematically or dynamically controlled manipulator (Global Parameter)
+
+/controller:
+  type: "dynamics"           # set to either kinematics or dynamics
