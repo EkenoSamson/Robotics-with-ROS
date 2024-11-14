@@ -36,6 +36,8 @@ class TaskSpaceDyn {
     double publish_rate_;				// publish_rate
     std::string urdf_file_name_;		// URDF file
     bool with_redundancy_;				// whether redundancy or not
+    bool with_orientation_;				// whether to control orientation
+
   	double end_stiffness_;				// end-effector stiffness
     double end_damping_;				// end-effector damping
     double joints_stiffness_;			// joints stiffness value
@@ -88,44 +90,69 @@ class TaskSpaceDyn {
     std::string feedback_twist_topic_;
 
     // ROS Message
+    geometry_msgs::Pose ee_fbk_pose;
+    geometry_msgs::Twist ee_fbk_twist;
     std_msgs::Float64MultiArray joint_torque_msg_;
 
     // Joints
-    Eigen::Matrix<double, 7, 1> joint_positions_;
-    Eigen::Matrix<double, 7, 1> joint_velocities_;
+    Eigen::Matrix<double, 7, 1> jts_fbk_positions_;
+    Eigen::Matrix<double, 7, 1> jts_fbk_velocities_;
     Eigen::Matrix<double, 7, 1> joint_acceleration_;
-    Eigen::Matrix<double, 7, 1> reference_positions_;
-    Eigen::Matrix<double, 7, 1> reference_velocities_;
+    Eigen::Matrix<double, 7, 1> jts_ref_positions_;
+    Eigen::Matrix<double, 7, 1> jts_ref_velocities_;
 
-    // End_effector
-    Eigen::Matrix<double, 3, 1> reference_pose_;
-    Eigen::Matrix<double, 3, 1> reference_twist_;
-    Eigen::Matrix<double, 3, 1> end_effector_pose_;
-    Eigen::Matrix<double, 3, 1> end_effector_twist_;
-    Eigen::Matrix<double, 3, 1> ee_ref_acc_;
-    Eigen::Matrix<double, 3, 1> twist_error_;
-    Eigen::Matrix<double, 3, 1> pose_error_;
-    Eigen::Matrix<double, 3, 1> ee_acc_cmd_;
+    // End_Effector reference pose and twist
+    Eigen::Matrix<double, 3, 1> ee_ref_position_;
+    Eigen::Quaternion<double> ee_ref_orientation_;
+    Eigen::Matrix<double, 6, 1> ee_ref_twist_;
+
+    //End-effector feedback pose and twist
+    Eigen::Matrix<double, 3, 1> ee_fbk_position_;
+    Eigen::Quaternion<double> ee_fbk_orientation_;
+    Eigen::Matrix<double, 6, 1> ee_fbk_twist_;
+
+    // End-effector accelerations
+    Eigen::Matrix<double, 6, 1> ee_ref_acc_;
+    Eigen::Matrix<double, 3, 1> ee_ref_acc_trans_;
+    Eigen::Matrix<double, 6, 1> ee_acc_cmd_;
+    Eigen::Matrix<double, 3, 1> ee_acc_cmd_trans_;
+
+    // End-effector errors
+    Eigen::Matrix<double, 6, 1> twist_error_;
+    Eigen::Matrix<double, 3, 1> twist_error_trans_;
+    Eigen::Matrix<double, 6, 1> pose_error_;
+    Eigen::Matrix<double, 3, 1> pose_error_trans_;
+    Eigen::Matrix<double, 3, 1> position_error_;
+    Eigen::Matrix<double, 3, 1> rotation_error_;
+    Eigen::Quaternion<double> orientation_error_;
+    Eigen::AngleAxisd angle_axis_error_;
+
+
 
     // Jacobian
-    Eigen::MatrixXd jacobian_;
-    Eigen::MatrixXd jacobian_dot_;
-    Eigen::MatrixXd jacobian_pseudo_inverse_;
+    Eigen::Matrix<double, 6, 7> jacobian_;
+    Eigen::Matrix<double, 6, 7> jacobian_dot_;
+    Eigen::Matrix<double, 7, 6> jacobian_pseudo_inverse_;
     Eigen::Matrix<double, 3, 7> jacobian_trans_;
     Eigen::Matrix<double, 3, 7> jacobian_dot_trans_;
+    Eigen::Matrix<double, 7, 3> jacobian_pseudo_inverse_trans_;
 
-    // Forces
-    Eigen::Matrix<double, 3, 3> lambda_;			// Task-space Mass Matrix
-    Eigen::Matrix<double, 3, 1> eta_;				// coriolis, centrifugal and gravity vector in TaskSpace
-    Eigen::Matrix<double, 3, 1> wrench_;			// Task-space force
+
+    // Forces for Task space
+    Eigen::Matrix<double, 6, 6> lambda_;			// Task-space Mass Matrix (for both position and orientation)
+    Eigen::Matrix<double, 3, 3> lambda_trans_;      // for translation only
+    Eigen::Matrix<double, 6, 1> eta_;				// coriolis, centrifugal and gravity vector in TaskSpace
+    Eigen::Matrix<double, 3, 1> eta_trans_;          // for translation only
+    Eigen::Matrix<double, 6, 1> wrench_;			// Task-space force
+    Eigen::Matrix<double, 3, 1> wrench_trans_;      // translation only
     Eigen::Matrix<double, 7, 1> tau_task_;			// Task Joint Torque
     Eigen::Matrix<double, 7, 1> tau_joint_;
     Eigen::Matrix<double, 7, 1> tau_null_;
     Eigen::Matrix<double, 7, 1> tau_total_;
 
     // Mass Matrix, (Coriolis and Centrifugal force and gravity vector)
-    Eigen::MatrixXd M_;
-    Eigen::VectorXd h_;
+    Eigen::Matrix<double, 7, 7> M_;
+    Eigen::Matrix<double, 7, 1> h_;
 
     // Null space Redundancy
     Eigen::Matrix<double, 7, 7> P_;				// Projection Matrix

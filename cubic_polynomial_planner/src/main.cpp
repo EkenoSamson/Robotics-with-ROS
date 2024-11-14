@@ -20,13 +20,16 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-      if (!planner.target_received_)
-        planner.pubDefaultTranslation();
+      if (!planner.target_position_received_ && !planner.target_orient_received_)  // no service has been called yet
+        planner.pubDefaultTransformation();
 
       ros::spinOnce();                        // Processes/tiggers callbacks
-      if (planner.duration_ > 0.0) {
+      if (planner.duration_ > 0.0)
         planner.update();
-      }
+
+      if (planner.total_time_ > 0.0)
+        planner.computeOrientation();
+
       loop_rate.sleep();                      // Sleep to maintain the loop rate of 500Hz
     }
 

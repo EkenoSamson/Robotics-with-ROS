@@ -25,6 +25,7 @@ CUBIC::CUBIC(ros::NodeHandle& nh) : nh_(nh) {
 
     // Advertise the move_to service
     move_to_srv_ = nh_.advertiseService("/pose_planner/move_to", &CUBIC::moveToCallback, this);
+    move_ori_srv_ = nh_.advertiseService("/pose_planner/move_ori", &CUBIC::moveOriCallback, this);
 
     // Publishing
     pose_pub_ = nh_.advertise<geometry_msgs::Pose>(reference_pose_topic_, 1);
@@ -40,10 +41,28 @@ CUBIC::CUBIC(ros::NodeHandle& nh) : nh_(nh) {
 void CUBIC::poseCallback(const geometry_msgs::Pose::ConstPtr& msg) {
     // Store the received information to current_pose_ (only position || ignore orientation)
     current_pose_ << msg->position.x, msg->position.y, msg->position.z;
-    current_orient_ = msg->orientation;
+    tf2::fromMsg(msg->orientation, current_orient_);
 }
 
-// MoveTo Service : Getting user request then move the robot
+// MoveOri Service : Getting user request then move the robot
+bool CUBIC::moveOriCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs::MoveTo::Response &res) {
+    // Receive the request
+    target_orient_.setRPY(req.x, req.y, req.z);
+    target_orient_.normalize();
+    total_time_ = req.T;
+	ROS_DEBUG("Received move_ori request: x=%f, y=%f, z=%f, T=%f", req.x, req.y, req.z, req.T);
+
+
+    starting_orient_ = current_orient_;
+	const_position_ = current_pose_;
+    starting_orient_.normalize();
+    start_time_ = ros::Time::now().toSec();
+
+    res.success = true;
+    target_orient_received_ = true;
+    return true;
+}
+
 bool CUBIC::moveToCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs::MoveTo::Response &res) {
     // Receive the request
     // Check if z >= zero
@@ -57,12 +76,15 @@ bool CUBIC::moveToCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs:
     duration_ = req.T;
 
     starting_pose_ = current_pose_;
+    const_orient_ = current_orient_.normalized();
     starting_time_ = ros::Time::now().toSec();
 
     res.success = true;
-    target_received_ = true;
+    target_position_received_ = true;
     return true;
 }
+
+
 
 // Plan the trajectory
 void CUBIC::update() {
@@ -72,19 +94,20 @@ void CUBIC::update() {
     if (current_time_ > duration_) {
       	current_time_ = duration_;
         duration_ -= current_time_;
+
         ROS_INFO("Target reached. Stopping updates.");
-    }
-	else {
+    } else {
     	pose_scaling_ = ((3 * pow(current_time_, 2)) / pow(duration_, 2)) - ((2 * pow(current_time_, 3)) / pow(duration_, 3));
     	move_to_ = starting_pose_ + pose_scaling_ * (target_pose_ - starting_pose_);
 
     	twist_scaling_ = ((6 * current_time_) / pow(duration_, 2)) - ((6 * pow(current_time_, 2)) / pow(duration_, 3));
     	moving_vel_ = twist_scaling_ * (target_pose_ - starting_pose_);
 
+
     	pose_.position.x = move_to_(0);
     	pose_.position.y = move_to_(1);
     	pose_.position.z = move_to_(2);
-    	pose_.orientation = current_orient_;
+    	pose_.orientation = tf2::toMsg(const_orient_);
 
     	pose_pub_.publish(pose_);
 
@@ -98,6 +121,20 @@ void CUBIC::update() {
     	twist_pub_.publish(twist_);
     }
 }
+
+void CUBIC::computeOrientation() {
+    curr_time_ = ros::Time::now().toSec() - start_time_;
+    double s_ = current_time_ / total_time_;
+    inter_orient_ = starting_orient_.slerp(target_orient_, s_);
+
+
+	pose_.position.x = const_position_(0);
+    pose_.position.y = const_position_(1);
+    pose_.position.z = const_position_(2);
+    pose_.orientation = tf2::toMsg(inter_orient_);
+    pose_pub_.publish(pose_);
+}
+
 
 // Function to read the ROS parameters
 bool CUBIC::readParameters() {
@@ -128,16 +165,25 @@ bool CUBIC::readParameters() {
     // default_translation for linear
     std::vector<double> linear_default_;
     if (!nh_.getParam("/gen3/linear/default", linear_default_)) {
-      	ROS_ERROR("Default translation not set or incorrect size");
+      	ROS_ERROR("Default translation not set.");
       	return false;
 	} else {
       	default_translation_ = Eigen::Vector3d(linear_default_.data());
+    }
+
+    //default_orientation
+    std::vector<double> angular_default_;
+    if (!nh_.getParam("/gen3/angular/default", angular_default_)) {
+      ROS_ERROR("Default rotation not set.");
+      return false;
+    } else {
+      default_orientation_ = Eigen::Vector3d(angular_default_.data());
     }
     return true;
 }
 
 // Handle default translation
-void CUBIC::pubDefaultTranslation() {
+void CUBIC::pubDefaultTransformation() {
   // geometry message
   geometry_msgs::Pose default_pose_;
 
@@ -146,27 +192,31 @@ void CUBIC::pubDefaultTranslation() {
   default_pose_.position.y = default_translation_(1);
   default_pose_.position.z = default_translation_(2);
 
-  // Set orientation to identity quaternion (no rotation)
-  default_pose_.orientation.x = 0.0;
-  default_pose_.orientation.y = 0.0;
-  default_pose_.orientation.z = 0.0;
-  default_pose_.orientation.w = 1.0;
+  // convert from Euler to Quaternion
+  default_quat_.setRPY(default_orientation_(0), default_orientation_(1), default_orientation_(2));
+
+  // Set orientation to quaternion
+  //default_pose_.orientation = tf2::toMsg(default_quat_);
+  default_pose_.orientation.x = default_quat_.x();
+  default_pose_.orientation.y = default_quat_.y();
+  default_pose_.orientation.z = default_quat_.z();
+  default_pose_.orientation.w = default_quat_.w();
 
   pose_pub_.publish(default_pose_);
 
   // Debugging: Print the pose being published
-    ROS_INFO_STREAM("Publishing Default Translation: "
-                    << "Position: [" << default_pose_.position.x << ", "
-                    << default_pose_.position.y << ", "
-                    << default_pose_.position.z << "] "
-                    << "Orientation: [" << default_pose_.orientation.x << ", "
-                    << default_pose_.orientation.y << ", "
-                    << default_pose_.orientation.z << ", "
-                    << default_pose_.orientation.w << "]");
-}
+  ROS_DEBUG("Pose: Position [x: %f, y: %f, z: %f], Orientation [x: %f, y: %f, z: %f, w: %f]",
+              default_pose_.position.x, default_pose_.position.y, default_pose_.position.z,
+              default_pose_.orientation.x, default_pose_.orientation.y, default_pose_.orientation.z, default_pose_.orientation.w);
 
 
-// destructor
-CUBIC::~CUBIC() {
-  //
+  	geometry_msgs::Twist default_twist_;
+    default_twist_.linear.x = 0.0;
+    default_twist_.linear.y = 0.0;
+    default_twist_.linear.z = 0.0;
+    default_twist_.angular.x = 0.0;
+    default_twist_.angular.y = 0.0;
+    default_twist_.angular.z = 0.0;
+
+    twist_pub_.publish(default_twist_);
 }

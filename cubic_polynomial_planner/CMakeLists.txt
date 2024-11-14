@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
 		geometry_msgs
 		highlevel_msgs
 		message_generation  					# Required to generate custom messages and services
+		tf2										# Transformation system
 )
 
 find_package(Eigen3 REQUIRED)					# Locate Eigen3
@@ -23,7 +24,7 @@ catkin_package(
 		INCLUDE_DIRS include  											# The include directory contains your header files
 		LIBRARIES cubic_polynomial_planner  							# Library to link with your source code
 		CATKIN_DEPENDS
-					geometry_msgs roscpp std_msgs
+					geometry_msgs roscpp std_msgs tf2
 					highlevel_msgs message_runtime  	# Packages needed at runtime
 		DEPENDS
 )
