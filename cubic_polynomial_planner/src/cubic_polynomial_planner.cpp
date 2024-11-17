@@ -54,6 +54,7 @@ bool CUBIC::moveOriCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs
 
 
     starting_orient_ = current_orient_;
+    starting_orient_.normalize();
 	const_position_ = current_pose_;
     starting_orient_.normalize();
     start_time_ = ros::Time::now().toSec();
@@ -76,7 +77,11 @@ bool CUBIC::moveToCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs:
     duration_ = req.T;
 
     starting_pose_ = current_pose_;
-    const_orient_ = current_orient_.normalized();
+
+    // Normalise the orientation
+    const_orient_ = current_orient_;
+    const_orient_.normalize();
+
     starting_time_ = ros::Time::now().toSec();
 
     res.success = true;

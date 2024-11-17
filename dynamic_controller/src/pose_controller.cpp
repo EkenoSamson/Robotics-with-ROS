@@ -294,6 +294,8 @@ void TaskSpaceDyn::computeDynamics() {
   // End-effector pose
   ee_fbk_position_ = data_.oMi[hand_id_].translation();
   pinocchio::quaternion::assignQuaternion(ee_fbk_orientation_, data_.oMi[hand_id_].rotation());
+  ee_fbk_orientation_.normalize();
+  ee_ref_orientation_.normalize();
 
   // End-effector twist
   ee_fbk_twist_ = jacobian_ * jts_fbk_velocities_;
@@ -314,6 +316,7 @@ void TaskSpaceDyn::computeDynamics() {
     twist_error_ = ee_ref_twist_ - ee_fbk_twist_;										// twist error
     position_error_ = ee_ref_position_ - ee_fbk_position_;							    //position error
     orientation_error_ = ee_ref_orientation_ * ee_fbk_orientation_.inverse();			// relative quaternion
+    orientation_error_.normalize();
     angle_axis_error_ = Eigen::AngleAxisd(orientation_error_);
     rotation_error_ = angle_axis_error_.axis() * angle_axis_error_.angle();
     pose_error_.head<3>() = position_error_;
@@ -386,6 +389,7 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_fbk_pose.position.x = ee_fbk_position_(0);  			// X-coordinate of end-effector
   ee_fbk_pose.position.y = ee_fbk_position_(1);  			// Y-coordinate of end-effector
   ee_fbk_pose.position.z = ee_fbk_position_(2);  			// Z-coordinate of end-effector
+
   ee_fbk_pose.orientation.x = ee_fbk_orientation_.x();
   ee_fbk_pose.orientation.y = ee_fbk_orientation_.y();
   ee_fbk_pose.orientation.z = ee_fbk_orientation_.z();

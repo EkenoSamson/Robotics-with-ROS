@@ -22,12 +22,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c7dd7437-c7fa-4468-bb38-89a8b529cc48" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/include/cubic_polynomial_planner.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/include/cubic_polynomial_planner.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/package.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/src/cubic_polynomial_planner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/src/cubic_polynomial_planner.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/src/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../dynamic_controller/include/pose_controller.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../dynamic_controller/include/pose_controller.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../dynamic_controller/src/pose_controller.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../dynamic_controller/src/pose_controller.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
@@ -57,24 +53,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/ekeno/applied-robotics-f2024/potential_field_planner&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/ekeno/applied-robotics-f2024/cubic_polynomial_planner",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -99,6 +95,8 @@
       <workItem from="1731426001280" duration="597000" />
       <workItem from="1731446291451" duration="775000" />
       <workItem from="1731509637822" duration="599000" />
+      <workItem from="1731600000242" duration="608000" />
+      <workItem from="1731704724705" duration="1862000" />
     </task>
     <servers />
   </component>
