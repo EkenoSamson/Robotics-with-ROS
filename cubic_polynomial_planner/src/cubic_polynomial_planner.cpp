@@ -78,10 +78,6 @@ bool CUBIC::moveToCallback(highlevel_msgs::MoveTo::Request &req, highlevel_msgs:
 
     starting_pose_ = current_pose_;
 
-    // Normalise the orientation
-    const_orient_ = current_orient_;
-    const_orient_.normalize();
-
     starting_time_ = ros::Time::now().toSec();
 
     res.success = true;
@@ -112,7 +108,10 @@ void CUBIC::update() {
     	pose_.position.x = move_to_(0);
     	pose_.position.y = move_to_(1);
     	pose_.position.z = move_to_(2);
-    	pose_.orientation = tf2::toMsg(const_orient_);
+    	pose_.orientation.x = default_pose_.orientation.x;
+		pose_.orientation.y = default_pose_.orientation.y;
+		pose_.orientation.z = default_pose_.orientation.z;
+		pose_.orientation.w = default_pose_.orientation.w;
 
     	pose_pub_.publish(pose_);
 
@@ -129,8 +128,20 @@ void CUBIC::update() {
 
 void CUBIC::computeOrientation() {
     curr_time_ = ros::Time::now().toSec() - start_time_;
-    double s_ = current_time_ / total_time_;
+
+	if (curr_time_ > total_time_) {
+		curr_time_ = total_time_;
+        total_time_ -= curr_time_;
+	} else {
+    s_ = ((3 * pow(curr_time_, 2)) / pow(total_time_, 2)) - ((2 * pow(curr_time_, 3)) / pow(total_time_, 3));
+	angle_ = target_orient_.angleShortestPath(starting_orient_);
     inter_orient_ = starting_orient_.slerp(target_orient_, s_);
+
+	ROS_INFO_STREAM("starting orientation  x: " << starting_orient_.x() << " y: " << starting_orient_.y() << " z: " << starting_orient_.z() << " w: " << starting_orient_.w());
+	ROS_INFO_STREAM("target orientation  x: " << target_orient_.x() << " y: " << target_orient_.y() << " z: " << target_orient_.z() << " w: " << target_orient_.w());
+	ROS_INFO_STREAM("angle between two quaternions " << angle_) ;
+	ROS_INFO_STREAM("inter_orient_  x: " << inter_orient_.x() << " y: " << inter_orient_.y() << " z: " << inter_orient_.x() << " w: " << inter_orient_.w());
+
 
 
 	pose_.position.x = const_position_(0);
@@ -138,6 +149,7 @@ void CUBIC::computeOrientation() {
     pose_.position.z = const_position_(2);
     pose_.orientation = tf2::toMsg(inter_orient_);
     pose_pub_.publish(pose_);
+	}
 }
 
 
@@ -189,8 +201,7 @@ bool CUBIC::readParameters() {
 
 // Handle default translation
 void CUBIC::pubDefaultTransformation() {
-  // geometry message
-  geometry_msgs::Pose default_pose_;
+
 
   // Translation
   default_pose_.position.x = default_translation_(0);
@@ -210,7 +221,7 @@ void CUBIC::pubDefaultTransformation() {
   pose_pub_.publish(default_pose_);
 
   // Debugging: Print the pose being published
-  ROS_DEBUG("Pose: Position [x: %f, y: %f, z: %f], Orientation [x: %f, y: %f, z: %f, w: %f]",
+  ROS_INFO("Pose: Position [x: %f, y: %f, z: %f], Orientation [x: %f, y: %f, z: %f, w: %f]",
               default_pose_.position.x, default_pose_.position.y, default_pose_.position.z,
               default_pose_.orientation.x, default_pose_.orientation.y, default_pose_.orientation.z, default_pose_.orientation.w);
 

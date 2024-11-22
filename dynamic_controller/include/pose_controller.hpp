@@ -39,9 +39,13 @@ class TaskSpaceDyn {
     bool with_orientation_;				// whether to control orientation
 
   	double end_stiffness_;				// end-effector stiffness
+	double end_stiffness_2_;
     double end_damping_;				// end-effector damping
+	double end_damping_2_;
     double joints_stiffness_;			// joints stiffness value
+    double joints_stiffness_2_;
   	double joints_damping_;				// joints damping value
+    double joints_damping_2_;
 
     // Callback functions for pose_controller
     void jointStatesCallback(const sensor_msgs::JointState::ConstPtr& msg);
@@ -52,7 +56,9 @@ class TaskSpaceDyn {
 
     // Service Callbacks
     bool setLinearPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res);
+	bool setPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res);
     bool setJointPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res);
+    bool setJointPDServiceCallback2(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res);
 
   private:
     ros::NodeHandle nh_;
@@ -77,7 +83,9 @@ class TaskSpaceDyn {
 
     // ROS Services
     ros::ServiceServer set_linear_pd_service_;
+	ros::ServiceServer set_PD_service_;
     ros::ServiceServer set_joint_pd_service_;
+    ros::ServiceServer set_joint_pd_service_2_;
 
     // ROS parameters for topics
   	std::string joint_states_topic_;

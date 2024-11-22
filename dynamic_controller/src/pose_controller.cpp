@@ -32,7 +32,9 @@ TaskSpaceDyn::TaskSpaceDyn(ros::NodeHandle& nh) : nh_(nh) {
 
   // Set up services
   set_linear_pd_service_ = nh_.advertiseService("/pose_controller/set_linear_pd", &TaskSpaceDyn::setLinearPDServiceCallback, this);
+  set_PD_service_ = nh_.advertiseService("/pose_controller/set_PD", &TaskSpaceDyn::setPDServiceCallback, this);
   set_joint_pd_service_ = nh_.advertiseService("/pose_controller/set_joint_pd", &TaskSpaceDyn::setJointPDServiceCallback, this);
+  set_joint_pd_service_2_ = nh_.advertiseService("/pose_controller/set_joint_pd_2", &TaskSpaceDyn::setJointPDServiceCallback2, this);
 }
 
 // Read the parameter
@@ -67,9 +69,19 @@ bool TaskSpaceDyn::readParameters() {
     return false;
   }
 
+  if (!nh_.getParam("/end_effector_stiffness_2", end_stiffness_2_)) {
+    ROS_ERROR("Could not read end-effector stiffness 2!");
+    return false;
+  }
+
   // Load end-effector damping
   if (!nh_.getParam("/end_effector_damping", end_damping_)) {
     ROS_ERROR("Could not read end-effector damping!");
+    return false;
+  }
+
+  if (!nh_.getParam("/end_effector_damping_2", end_damping_2_)) {
+    ROS_ERROR("Could not read end-effector damping 2!");
     return false;
   }
 
@@ -79,9 +91,19 @@ bool TaskSpaceDyn::readParameters() {
     return false;
   }
 
+  if (!nh_.getParam("/joint_stiffness_2", joints_stiffness_2_)) {
+    ROS_ERROR("Could not read joints stiffness 2!");
+    return false;
+  }
+
   // Load joints damping
   if (!nh_.getParam("/joint_damping", joints_damping_)) {
     ROS_ERROR("Could not read joints damping!");
+    return false;
+  }
+
+  if (!nh_.getParam("/joint_damping_2", joints_damping_2_)) {
+    ROS_ERROR("Could not read joints damping 2!");
     return false;
   }
 
@@ -237,9 +259,6 @@ void TaskSpaceDyn::referencePoseCallback(const geometry_msgs::Pose::ConstPtr& ms
   ee_ref_orientation_.w() = msg->orientation.w;
 
   // Debugging: Print the reference pose received
-//  ROS_DEBUG("Reference Position: [%f, %f, %f]", ee_ref_position_(0), ee_ref_position_(1), ee_ref_position_(2);
-//  ROS_DEBUG("Reference Orientation: [%f, %f, %f, %f]", ee_ref_orientation_.x(), ee_ref_orientation_.y(),
-//            ee_ref_orientation_.z(), ee_ref_orientation_.w());
 
 }
 
@@ -255,10 +274,6 @@ void TaskSpaceDyn::referenceTwistCallback(const geometry_msgs::Twist::ConstPtr& 
 
 
   // Debugging: Print the reference twist received
-//  ROS_DEBUG("Reference twist: [%f, %f, %f, %f, %f, %f]", ee_ref_twist_.linear.x(),
-//            ee_ref_twist_.linear.y(), ee_ref_twist_.linear.z(), ee_ref_twist_.angular.x(),
-//            ee_ref_twist_.angular.y(), ee_ref_twist_.angular.z())
-
 }
 
 // Setting the Linear K and D
@@ -269,11 +284,24 @@ bool TaskSpaceDyn::setLinearPDServiceCallback(highlevel_msgs::SetKD::Request &re
   return true;
 }
 
+bool TaskSpaceDyn::setPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res) {
+  end_stiffness_2_ = req.k;
+  end_damping_2_ = req.d;
+
+  return true;
+}
+
 // Setting the Joint K and D
 bool TaskSpaceDyn::setJointPDServiceCallback(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res) {
   // Tune the joint K and D
   joints_stiffness_ = req.k;
   joints_damping_ = req.d;
+  return true;
+}
+
+bool TaskSpaceDyn::setJointPDServiceCallback2(highlevel_msgs::SetKD::Request &req, highlevel_msgs::SetKD::Response &res) {
+  joints_stiffness_2_ = req.k;
+  joints_damping_2_ = req.d;
   return true;
 }
 
@@ -288,17 +316,32 @@ void TaskSpaceDyn::computeDynamics() {
   // Get the Jacobian and its time derivative
   pinocchio::getJointJacobian(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_);
   pinocchio::getJointJacobianTimeVariation(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_dot_);
-  jacobian_trans_ = jacobian_.topRows(3);
-  jacobian_dot_trans_ = jacobian_dot_.topRows(3);
+
 
   // End-effector pose
   ee_fbk_position_ = data_.oMi[hand_id_].translation();
   pinocchio::quaternion::assignQuaternion(ee_fbk_orientation_, data_.oMi[hand_id_].rotation());
+
+  std::cout << "Rotation matrix: \n" << data_.oMi[hand_id_].rotation() << std::endl;
+
+
+  ROS_INFO("From Forward Kinematics: Before Normalisation");
+  ROS_INFO("Orientation Feedback [%f, %f, %f, %f]", ee_fbk_orientation_.x(), ee_fbk_orientation_.y(), ee_fbk_orientation_.z(), ee_fbk_orientation_.w());
+  ROS_INFO("Orientation reference [%f, %f, %f, %f]", ee_ref_orientation_.x(), ee_ref_orientation_.y(), ee_ref_orientation_.z(), ee_ref_orientation_.w());
   ee_fbk_orientation_.normalize();
   ee_ref_orientation_.normalize();
 
+  //Debug
+  ROS_INFO("From Forward Kinematics: After Normalization");
+  ROS_INFO("Orientation Feedback [%f, %f, %f, %f]", ee_fbk_orientation_.x(), ee_fbk_orientation_.y(), ee_fbk_orientation_.z(), ee_fbk_orientation_.w());
+  ROS_INFO("Orientation reference [%f, %f, %f, %f]", ee_ref_orientation_.x(), ee_ref_orientation_.y(), ee_ref_orientation_.z(), ee_ref_orientation_.w());
+
   // End-effector twist
   ee_fbk_twist_ = jacobian_ * jts_fbk_velocities_;
+
+  //Debug
+  ROS_INFO("Twist Feedback [%f, %f, %f, %f, %f, %f]", ee_fbk_twist_(0), ee_fbk_twist_(1), ee_fbk_twist_(2), ee_fbk_twist_(3), ee_fbk_twist_(4), ee_fbk_twist_(5));
+  ROS_INFO("Twist Reference [%f, %f, %f, %f, %f, %f]", ee_ref_twist_(0), ee_ref_twist_(1), ee_ref_twist_(2), ee_ref_twist_(3), ee_ref_twist_(4), ee_ref_twist_(5));
 
   pubEndFeedback();
 
@@ -316,14 +359,20 @@ void TaskSpaceDyn::computeDynamics() {
     twist_error_ = ee_ref_twist_ - ee_fbk_twist_;										// twist error
     position_error_ = ee_ref_position_ - ee_fbk_position_;							    //position error
     orientation_error_ = ee_ref_orientation_ * ee_fbk_orientation_.inverse();			// relative quaternion
+
+    // Debug
+    ROS_INFO("Orientation Difference: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
+
     orientation_error_.normalize();
+    ROS_INFO("Orientation Difference Normalise: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
     angle_axis_error_ = Eigen::AngleAxisd(orientation_error_);
     rotation_error_ = angle_axis_error_.axis() * angle_axis_error_.angle();
     pose_error_.head<3>() = position_error_;
     pose_error_.tail<3>() = rotation_error_;
 
+
     //ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
-    ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_ * pose_error_) + (end_damping_ * twist_error_);
+    ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_2_ * pose_error_) + (end_damping_2_ * twist_error_);
 
     // Compute the task-space wrench
     wrench_ = lambda_ * ee_acc_cmd_ + eta_;
@@ -331,6 +380,10 @@ void TaskSpaceDyn::computeDynamics() {
     // Compute the joint torques
     tau_task_ = jacobian_.transpose() * wrench_;
   } else {
+    // Jacobian for Linear (position)
+    jacobian_trans_ = jacobian_.topRows(3);
+    jacobian_dot_trans_ = jacobian_dot_.topRows(3);
+
     // Compute the pseudo-inverse of the Jacobian matrix
     jacobian_pseudo_inverse_trans_ = jacobian_trans_.transpose() * (jacobian_trans_ * jacobian_trans_.transpose()).inverse();
 
@@ -341,7 +394,7 @@ void TaskSpaceDyn::computeDynamics() {
     eta_trans_ = jacobian_pseudo_inverse_trans_.transpose() * h_ - lambda_trans_ * jacobian_dot_trans_ * jts_fbk_velocities_;
 
     // Compute desired task-space acceleration
-    twist_error_trans_ = ee_ref_twist_.topRows(3) - ee_fbk_twist_.topRows(3);
+    twist_error_trans_ = ee_ref_twist_.head(3) - ee_fbk_twist_.head(3);
     pose_error_trans_ = ee_ref_position_ - ee_fbk_position_;
     ee_acc_cmd_trans_ = ee_ref_acc_trans_ + (end_stiffness_ * pose_error_trans_) + (end_damping_ * twist_error_trans_);
 
@@ -353,26 +406,46 @@ void TaskSpaceDyn::computeDynamics() {
   }
   if (with_redundancy_) {
     // Compute Projection Matrix
-    if (with_orientation_)
-       P_ = I_ - jacobian_.transpose() * (jacobian_ * M_.inverse() * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
-    else
+    if (with_orientation_) {
+      //Compute Projection Matrix
+      P_ = I_ - jacobian_.transpose() * (jacobian_ * M_.inverse() * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
+
+      // Compute joint acceleration
+      joint_acceleration_ = joints_stiffness_2_ * (jts_ref_positions_ - jts_fbk_positions_) + joints_damping_2_ * (jts_ref_velocities_ - jts_fbk_velocities_);
+
+      // Compute Joint Torque
+      tau_joint_ = M_ * joint_acceleration_ + h_;
+
+      // Compute Null Torque
+      tau_null_ = P_ * tau_joint_;
+
+      // Compute total torque
+      tau_total_ = tau_task_ + tau_null_;
+
+      // Populate Message
+      for (int i = 0; i < num_joints_; i++)
+        joint_torque_msg_.data[i] = tau_total_(i);
+    } else {
+      //Compute Projection Matrix
        P_ = I_ - jacobian_trans_.transpose() * (jacobian_trans_ * M_.inverse() * jacobian_trans_.transpose()).inverse() * jacobian_trans_ * M_.inverse();
 
-    // Compute joint acceleration
-    joint_acceleration_ = joints_stiffness_ * (jts_ref_positions_ - jts_fbk_positions_) + joints_damping_ * (jts_ref_velocities_ - jts_fbk_velocities_);
+      // Compute joint acceleration
+      joint_acceleration_ = joints_stiffness_ * (jts_ref_positions_ - jts_fbk_positions_) + joints_damping_ * (jts_ref_velocities_ - jts_fbk_velocities_);
 
-    // Compute Joint Torque
-    tau_joint_ = M_ * joint_acceleration_ + h_;
+      // Compute Joint Torque
+      tau_joint_ = M_ * joint_acceleration_ + h_;
 
-    // Compute Null Torque
-    tau_null_ = P_ * tau_joint_;
+      // Compute Null Torque
+      tau_null_ = P_ * tau_joint_;
 
-    // Compute total torque
-    tau_total_ = tau_task_ + tau_null_;
+      // Compute total torque
+      tau_total_ = tau_task_ + tau_null_;
 
-    // Populate Message
-    for (int i = 0; i < num_joints_; i++)
-      joint_torque_msg_.data[i] = tau_total_(i);
+      // Populate Message
+      for (int i = 0; i < num_joints_; i++)
+        joint_torque_msg_.data[i] = tau_total_(i);
+
+    }
   } else {
     // Populate message with task-space torque
     for (int i = 0; i < num_joints_; i++)

@@ -1,4 +1,4 @@
-/snap/clion/296/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/296/bin/ninja/linux/x64/ninja -G Ninja -S /home/ekeno/applied-robotics-f2024/cubic_polynomial_planner -B /home/ekeno/applied-robotics-f2024/cubic_polynomial_planner/cmake-build-debug
+/snap/clion/305/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/305/bin/ninja/linux/x64/ninja -G Ninja -S /home/ekeno/applied-robotics-f2024/cubic_polynomial_planner -B /home/ekeno/applied-robotics-f2024/cubic_polynomial_planner/cmake-build-debug
 CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
   Compatibility with CMake < 3.5 will be removed from a future version of
   CMake.
@@ -7,6 +7,18 @@ CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
   CMake that the project does not need compatibility with older versions.
 
 
+-- The C compiler identification is GNU 9.4.0
+-- The CXX compiler identification is GNU 9.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
 CMake Error at CMakeLists.txt:7 (find_package):
   By not providing "Findcatkin.cmake" in CMAKE_MODULE_PATH this project has
   asked CMake to find a package configuration file provided by "catkin", but

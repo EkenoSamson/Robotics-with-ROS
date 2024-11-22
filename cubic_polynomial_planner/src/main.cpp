@@ -30,6 +30,8 @@ int main(int argc, char **argv)
       if (planner.total_time_ > 0.0)
         planner.computeOrientation();
 
+      ROS_INFO("Angle: %f", planner.angle_);
+
       loop_rate.sleep();                      // Sleep to maintain the loop rate of 500Hz
     }
 

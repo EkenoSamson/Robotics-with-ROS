@@ -42,6 +42,7 @@ class CUBIC
         tf2::Quaternion default_quat_;
         bool target_position_received_ = false;
         bool target_orient_received_ = false;
+		double angle_ = 0.0;
 
 
     private:
@@ -68,7 +69,7 @@ class CUBIC
         tf2::Quaternion delta_orient_;
         tf2::Quaternion const_orient_;
         tf2::Vector3 axis_;
-        double angle_;
+        //double angle_;
         tf2::Vector3 angular_vel_;
 
         Eigen::Vector3d move_to_;
@@ -85,12 +86,14 @@ class CUBIC
         // Scaling factors
         double pose_scaling_;
         double twist_scaling_;
+		double s_;
 
 
 
         // Storage after planning and before publishing
         geometry_msgs::Twist twist_;
         geometry_msgs::Pose pose_;
+  		geometry_msgs::Pose default_pose_;
 
         // Topic names for parameter server
         std::string feedback_pose_topic_;                 // Topic for feedback_pose
