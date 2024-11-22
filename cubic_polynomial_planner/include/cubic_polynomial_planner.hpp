@@ -94,6 +94,7 @@ class CUBIC
         geometry_msgs::Twist twist_;
         geometry_msgs::Pose pose_;
   		geometry_msgs::Pose default_pose_;
+		geometry_msgs::Twist default_twist_;
 
         // Topic names for parameter server
         std::string feedback_pose_topic_;                 // Topic for feedback_pose

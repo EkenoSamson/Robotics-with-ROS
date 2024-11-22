@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 
     while (ros::ok()) {
       ros::spinOnce();
-      controller.computeDynamics();
+      controller.update();
       loop_rate.sleep();
     }
 

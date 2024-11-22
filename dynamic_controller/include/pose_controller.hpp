@@ -29,7 +29,9 @@ class TaskSpaceDyn {
 
     // Helper functions
     bool readParameters();				// reading ROS parameters from the server
-    void computeDynamics();				// compute task space dynamics
+    void update();
+    void computeFullDynamics();			// compute task space dynamics (both translation and orientation)
+    void computeTransDynamics();		// only for translation
     void pubEndFeedback();				// publish the pose and twist of the end-effector
 
     // Parameters
@@ -133,8 +135,11 @@ class TaskSpaceDyn {
     Eigen::Matrix<double, 3, 1> position_error_;
     Eigen::Matrix<double, 3, 1> rotation_error_;
     Eigen::Quaternion<double> orientation_error_;
-    Eigen::AngleAxisd angle_axis_error_;
 
+
+    // Rotation matrices
+	Eigen::Matrix<double, 3, 3> ref_rot_matrix_;
+    Eigen::Matrix<double, 3, 3> rot_error_;
 
 
     // Jacobian

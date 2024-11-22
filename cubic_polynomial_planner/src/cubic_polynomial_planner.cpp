@@ -108,10 +108,8 @@ void CUBIC::update() {
     	pose_.position.x = move_to_(0);
     	pose_.position.y = move_to_(1);
     	pose_.position.z = move_to_(2);
-    	pose_.orientation.x = default_pose_.orientation.x;
-		pose_.orientation.y = default_pose_.orientation.y;
-		pose_.orientation.z = default_pose_.orientation.z;
-		pose_.orientation.w = default_pose_.orientation.w;
+    	pose_.orientation = tf2::toMsg(default_quat_);
+
 
     	pose_pub_.publish(pose_);
 
@@ -149,6 +147,15 @@ void CUBIC::computeOrientation() {
     pose_.position.z = const_position_(2);
     pose_.orientation = tf2::toMsg(inter_orient_);
     pose_pub_.publish(pose_);
+
+    twist_.linear.x = 0;
+    twist_.linear.y = 0;
+    twist_.linear.z = 0;
+    twist_.angular.x = 0;
+    twist_.angular.y = 0;
+    twist_.angular.z = 0;
+
+    twist_pub_.publish(twist_);
 	}
 }
 
@@ -212,11 +219,11 @@ void CUBIC::pubDefaultTransformation() {
   default_quat_.setRPY(default_orientation_(0), default_orientation_(1), default_orientation_(2));
 
   // Set orientation to quaternion
-  //default_pose_.orientation = tf2::toMsg(default_quat_);
-  default_pose_.orientation.x = default_quat_.x();
-  default_pose_.orientation.y = default_quat_.y();
-  default_pose_.orientation.z = default_quat_.z();
-  default_pose_.orientation.w = default_quat_.w();
+  default_pose_.orientation = tf2::toMsg(default_quat_);
+//  default_pose_.orientation.x = default_quat_.x();
+//  default_pose_.orientation.y = default_quat_.y();
+//  default_pose_.orientation.z = default_quat_.z();
+//  default_pose_.orientation.w = default_quat_.w();
 
   pose_pub_.publish(default_pose_);
 
@@ -226,7 +233,6 @@ void CUBIC::pubDefaultTransformation() {
               default_pose_.orientation.x, default_pose_.orientation.y, default_pose_.orientation.z, default_pose_.orientation.w);
 
 
-  	geometry_msgs::Twist default_twist_;
     default_twist_.linear.x = 0.0;
     default_twist_.linear.y = 0.0;
     default_twist_.linear.z = 0.0;

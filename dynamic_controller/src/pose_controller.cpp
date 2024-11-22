@@ -218,6 +218,10 @@ void TaskSpaceDyn::init(std::string urdf_file_name) {
   P_.setZero();
   I_.setIdentity();
 
+  // Rotation
+  ref_rot_matrix_.setZero();
+  rot_error_.setZero();
+
   // Message
   joint_torque_msg_.data.resize(num_joints_);
 }
@@ -305,8 +309,7 @@ bool TaskSpaceDyn::setJointPDServiceCallback2(highlevel_msgs::SetKD::Request &re
   return true;
 }
 
-// compute task space dynamics
-void TaskSpaceDyn::computeDynamics() {
+void TaskSpaceDyn::update() {
   // Compute general dynamics
   ROS_INFO("Computing Task Space Dynamics");
   pinocchio::computeAllTerms(model_, data_, jts_fbk_positions_, jts_fbk_velocities_);
@@ -317,72 +320,105 @@ void TaskSpaceDyn::computeDynamics() {
   pinocchio::getJointJacobian(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_);
   pinocchio::getJointJacobianTimeVariation(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_dot_);
 
+  ROS_INFO("Hand ID: %d", hand_id_);
 
   // End-effector pose
   ee_fbk_position_ = data_.oMi[hand_id_].translation();
+
+  if (with_orientation_)
+    computeFullDynamics();
+  else
+    computeTransDynamics();
+}
+
+// compute task space dynamics
+void TaskSpaceDyn::computeFullDynamics() {
+  // get the orientation and compute the twist:
   pinocchio::quaternion::assignQuaternion(ee_fbk_orientation_, data_.oMi[hand_id_].rotation());
-
-  std::cout << "Rotation matrix: \n" << data_.oMi[hand_id_].rotation() << std::endl;
-
-
-  ROS_INFO("From Forward Kinematics: Before Normalisation");
-  ROS_INFO("Orientation Feedback [%f, %f, %f, %f]", ee_fbk_orientation_.x(), ee_fbk_orientation_.y(), ee_fbk_orientation_.z(), ee_fbk_orientation_.w());
-  ROS_INFO("Orientation reference [%f, %f, %f, %f]", ee_ref_orientation_.x(), ee_ref_orientation_.y(), ee_ref_orientation_.z(), ee_ref_orientation_.w());
-  ee_fbk_orientation_.normalize();
-  ee_ref_orientation_.normalize();
-
-  //Debug
-  ROS_INFO("From Forward Kinematics: After Normalization");
-  ROS_INFO("Orientation Feedback [%f, %f, %f, %f]", ee_fbk_orientation_.x(), ee_fbk_orientation_.y(), ee_fbk_orientation_.z(), ee_fbk_orientation_.w());
-  ROS_INFO("Orientation reference [%f, %f, %f, %f]", ee_ref_orientation_.x(), ee_ref_orientation_.y(), ee_ref_orientation_.z(), ee_ref_orientation_.w());
-
-  // End-effector twist
   ee_fbk_twist_ = jacobian_ * jts_fbk_velocities_;
-
-  //Debug
-  ROS_INFO("Twist Feedback [%f, %f, %f, %f, %f, %f]", ee_fbk_twist_(0), ee_fbk_twist_(1), ee_fbk_twist_(2), ee_fbk_twist_(3), ee_fbk_twist_(4), ee_fbk_twist_(5));
-  ROS_INFO("Twist Reference [%f, %f, %f, %f, %f, %f]", ee_ref_twist_(0), ee_ref_twist_(1), ee_ref_twist_(2), ee_ref_twist_(3), ee_ref_twist_(4), ee_ref_twist_(5));
-
   pubEndFeedback();
 
-  //Performing dynamic controller
-  if (with_orientation_) {
-    // Compute the pseudo-inverse of the Jacobian matrix
-    jacobian_pseudo_inverse_ = jacobian_.transpose() * (jacobian_ * jacobian_.transpose()).inverse();
+  // Compute the pseudo-inverse of the Jacobian matrix
+  jacobian_pseudo_inverse_ = jacobian_.transpose() * (jacobian_ * jacobian_.transpose()).inverse();
 
-    // Compute task-space mass matrix (Lambda)
-    lambda_ = jacobian_pseudo_inverse_.transpose() * M_ * jacobian_pseudo_inverse_;
+  // Compute task-space mass matrix (Lambda)
+  lambda_ = jacobian_pseudo_inverse_.transpose() * M_ * jacobian_pseudo_inverse_;
 
-    // Compute task-space bias forces (eta)
-    eta_ = jacobian_pseudo_inverse_.transpose() * h_ - lambda_ * jacobian_dot_ * jts_fbk_velocities_;
+  // Compute task-space bias forces (eta)
+  eta_ = jacobian_pseudo_inverse_.transpose() * h_ - lambda_ * jacobian_dot_ * jts_fbk_velocities_;
 
-    twist_error_ = ee_ref_twist_ - ee_fbk_twist_;										// twist error
-    position_error_ = ee_ref_position_ - ee_fbk_position_;							    //position error
-    orientation_error_ = ee_ref_orientation_ * ee_fbk_orientation_.inverse();			// relative quaternion
+  // convert the reference quaternion to rotation
+  ref_rot_matrix_ = ee_ref_orientation_.toRotationMatrix();
 
-    // Debug
-    ROS_INFO("Orientation Difference: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
-
-    orientation_error_.normalize();
-    ROS_INFO("Orientation Difference Normalise: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
-    angle_axis_error_ = Eigen::AngleAxisd(orientation_error_);
-    rotation_error_ = angle_axis_error_.axis() * angle_axis_error_.angle();
-    pose_error_.head<3>() = position_error_;
-    pose_error_.tail<3>() = rotation_error_;
+  // Calculate the rotation error
+  rot_error_ = ref_rot_matrix_ * data_.oMi[hand_id_].rotation().transpose();
+  Eigen::AngleAxisd angleaxis(rot_error_);
 
 
-    //ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
-    ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_2_ * pose_error_) + (end_damping_2_ * twist_error_);
+  twist_error_ = ee_ref_twist_ - ee_fbk_twist_;										// twist error
+  position_error_ = ee_ref_position_ - ee_fbk_position_;							    //position error
+  //orientation_error_ = ee_ref_orientation_ * ee_fbk_orientation_.inverse();			// relative quaternion
 
-    // Compute the task-space wrench
-    wrench_ = lambda_ * ee_acc_cmd_ + eta_;
+  // Debug
+  //  ROS_INFO("Orientation Difference: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
 
-    // Compute the joint torques
-    tau_task_ = jacobian_.transpose() * wrench_;
+  //orientation_error_.normalize();
+  //  ROS_INFO("Orientation Difference Normalise: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
+  //angle_axis_error_(orientation_error_);
+  //rotation_error_ = angle_axis_error_.axis() * angle_axis_error_.angle();
+  rotation_error_ = angleaxis.angle() * angleaxis.axis().transpose();
+  pose_error_.head<3>() = position_error_;
+  pose_error_.tail<3>() = rotation_error_;
+
+  // Display the angle
+  std::cout << "Angle btw target-Start: %d" << ee_ref_orientation_.angularDistance(ee_fbk_orientation_) << std::endl;
+
+  //ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
+  ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_2_ * pose_error_) + (end_damping_2_ * twist_error_);
+
+  // Compute the task-space wrench
+  wrench_ = lambda_ * ee_acc_cmd_ + eta_;
+
+  // Compute the joint torques
+  tau_task_ = jacobian_.transpose() * wrench_;
+
+  if (with_redundancy_) {
+     //Compute Projection Matrix
+     P_ = I_ - jacobian_.transpose() * (jacobian_ * M_.inverse() * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
+
+     // Compute joint acceleration
+     joint_acceleration_ = joints_stiffness_2_ * (jts_ref_positions_ - jts_fbk_positions_) + joints_damping_2_ * (jts_ref_velocities_ - jts_fbk_velocities_);
+
+     // Compute Joint Torque
+      tau_joint_ = M_ * joint_acceleration_ + h_;
+
+      // Compute Null Torque
+      tau_null_ = P_ * tau_joint_;
+
+      // Compute total torque
+      tau_total_ = tau_task_ + tau_null_;
+
+      // Populate Message
+      for (int i = 0; i < num_joints_; i++)
+        joint_torque_msg_.data[i] = tau_total_(i);
   } else {
+  	 // Populate message with task-space torque
+     for (int i = 0; i < num_joints_; i++)
+     joint_torque_msg_.data[i] = tau_task_(i);
+  }
+  // Publish the joint torques
+  joint_effort_pub_.publish(joint_torque_msg_);
+}
+
+void TaskSpaceDyn::computeTransDynamics() {
     // Jacobian for Linear (position)
     jacobian_trans_ = jacobian_.topRows(3);
     jacobian_dot_trans_ = jacobian_dot_.topRows(3);
+
+  	// compute the end-effector twist for tranlation
+    ee_fbk_twist_.head(3) = jacobian_trans_ * jts_fbk_velocities_;
+    pubEndFeedback();
+
 
     // Compute the pseudo-inverse of the Jacobian matrix
     jacobian_pseudo_inverse_trans_ = jacobian_trans_.transpose() * (jacobian_trans_ * jacobian_trans_.transpose()).inverse();
@@ -403,29 +439,8 @@ void TaskSpaceDyn::computeDynamics() {
 
     // Compute the joint torques
     tau_task_ = jacobian_trans_.transpose() * wrench_trans_;
-  }
-  if (with_redundancy_) {
-    // Compute Projection Matrix
-    if (with_orientation_) {
-      //Compute Projection Matrix
-      P_ = I_ - jacobian_.transpose() * (jacobian_ * M_.inverse() * jacobian_.transpose()).inverse() * jacobian_ * M_.inverse();
 
-      // Compute joint acceleration
-      joint_acceleration_ = joints_stiffness_2_ * (jts_ref_positions_ - jts_fbk_positions_) + joints_damping_2_ * (jts_ref_velocities_ - jts_fbk_velocities_);
-
-      // Compute Joint Torque
-      tau_joint_ = M_ * joint_acceleration_ + h_;
-
-      // Compute Null Torque
-      tau_null_ = P_ * tau_joint_;
-
-      // Compute total torque
-      tau_total_ = tau_task_ + tau_null_;
-
-      // Populate Message
-      for (int i = 0; i < num_joints_; i++)
-        joint_torque_msg_.data[i] = tau_total_(i);
-    } else {
+    if (!with_redundancy_) {
       //Compute Projection Matrix
        P_ = I_ - jacobian_trans_.transpose() * (jacobian_trans_ * M_.inverse() * jacobian_trans_.transpose()).inverse() * jacobian_trans_ * M_.inverse();
 
@@ -444,17 +459,15 @@ void TaskSpaceDyn::computeDynamics() {
       // Populate Message
       for (int i = 0; i < num_joints_; i++)
         joint_torque_msg_.data[i] = tau_total_(i);
+    } else {
+      // Populate message with task-space torque
+      for (int i = 0; i < num_joints_; i++)
+      	joint_torque_msg_.data[i] = tau_task_(i);
+  	}
 
-    }
-  } else {
-    // Populate message with task-space torque
-    for (int i = 0; i < num_joints_; i++)
-      joint_torque_msg_.data[i] = tau_task_(i);
-  }
-  // Publish the joint torques
-  joint_effort_pub_.publish(joint_torque_msg_);
+    // Publish the joint torques
+  	joint_effort_pub_.publish(joint_torque_msg_);
 }
-
 
 // Publish the end effector feedback
 void TaskSpaceDyn::pubEndFeedback() {
@@ -468,6 +481,9 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_fbk_pose.orientation.z = ee_fbk_orientation_.z();
   ee_fbk_pose.orientation.w = ee_fbk_orientation_.w();
 
+  ROS_INFO("Pose controller published (Feedback)");
+  ROS_INFO("Position [%f, %f, %f]", ee_fbk_pose.position.x, ee_fbk_pose.position.y, ee_fbk_pose.position.z);
+  ROS_INFO("Orientation [%f, %f, %f, %f]", ee_fbk_pose.orientation.x, ee_fbk_pose.orientation.y, ee_fbk_pose.orientation.z, ee_fbk_pose.orientation.w);
 
   end_effector_pose_pub_.publish(ee_fbk_pose);  // Publish pose
 
@@ -480,6 +496,9 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_fbk_twist.angular.y = ee_fbk_twist_(4);
   ee_fbk_twist.angular.z = ee_fbk_twist_(5);
 
+  ROS_INFO("Twist controller published (Feedback)");
+  ROS_INFO("Twist [%f, %f, %f, %f, %f, %f]", ee_fbk_twist.linear.x, ee_fbk_twist.linear.y, ee_fbk_twist.linear.z, ee_fbk_twist.angular.x,
+           ee_fbk_twist.angular.y, ee_fbk_twist.angular.z);
 
   end_effector_twist_pub_.publish(ee_fbk_twist);  // Publish twist
 }
