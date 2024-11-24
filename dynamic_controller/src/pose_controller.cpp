@@ -347,31 +347,20 @@ void TaskSpaceDyn::computeFullDynamics() {
   // Compute task-space bias forces (eta)
   eta_ = jacobian_pseudo_inverse_.transpose() * h_ - lambda_ * jacobian_dot_ * jts_fbk_velocities_;
 
-  // convert the reference quaternion to rotation
-  ref_rot_matrix_ = ee_ref_orientation_.toRotationMatrix();
 
   // Calculate the rotation error
-  rot_error_ = ref_rot_matrix_ * data_.oMi[hand_id_].rotation().transpose();
+  ref_rot_matrix_ = ee_ref_orientation_.toRotationMatrix();							// convvert the reference quaternion to rotation
+  rot_error_ = ref_rot_matrix_ * data_.oMi[hand_id_].rotation().transpose();		// extract the feedback rotation then get the relative rotation
   Eigen::AngleAxisd angleaxis(rot_error_);
-
+  rotation_error_ = angleaxis.angle() * angleaxis.axis().transpose();
 
   twist_error_ = ee_ref_twist_ - ee_fbk_twist_;										// twist error
-  position_error_ = ee_ref_position_ - ee_fbk_position_;							    //position error
-  //orientation_error_ = ee_ref_orientation_ * ee_fbk_orientation_.inverse();			// relative quaternion
-
-  // Debug
-  //  ROS_INFO("Orientation Difference: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
-
-  //orientation_error_.normalize();
-  //  ROS_INFO("Orientation Difference Normalise: [%f, %f, %f, %f]", orientation_error_.x(), orientation_error_.y(), orientation_error_.z(), orientation_error_.w());
-  //angle_axis_error_(orientation_error_);
-  //rotation_error_ = angle_axis_error_.axis() * angle_axis_error_.angle();
-  rotation_error_ = angleaxis.angle() * angleaxis.axis().transpose();
+  position_error_ = ee_ref_position_ - ee_fbk_position_;							//position error
   pose_error_.head<3>() = position_error_;
   pose_error_.tail<3>() = rotation_error_;
 
-  // Display the angle
-  std::cout << "Angle btw target-Start: %d" << ee_ref_orientation_.angularDistance(ee_fbk_orientation_) << std::endl;
+  // Display the angle (Debugging)
+  std::cout << "Angle btw ref-fbk: " << ee_ref_orientation_.angularDistance(ee_fbk_orientation_) << std::endl;
 
   //ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
   ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_2_ * pose_error_) + (end_damping_2_ * twist_error_);
@@ -440,7 +429,7 @@ void TaskSpaceDyn::computeTransDynamics() {
     // Compute the joint torques
     tau_task_ = jacobian_trans_.transpose() * wrench_trans_;
 
-    if (!with_redundancy_) {
+    if (with_redundancy_) {
       //Compute Projection Matrix
        P_ = I_ - jacobian_trans_.transpose() * (jacobian_trans_ * M_.inverse() * jacobian_trans_.transpose()).inverse() * jacobian_trans_ * M_.inverse();
 

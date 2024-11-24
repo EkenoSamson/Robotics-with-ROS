@@ -135,13 +135,6 @@ void CUBIC::computeOrientation() {
 	angle_ = target_orient_.angleShortestPath(starting_orient_);
     inter_orient_ = starting_orient_.slerp(target_orient_, s_);
 
-	ROS_INFO_STREAM("starting orientation  x: " << starting_orient_.x() << " y: " << starting_orient_.y() << " z: " << starting_orient_.z() << " w: " << starting_orient_.w());
-	ROS_INFO_STREAM("target orientation  x: " << target_orient_.x() << " y: " << target_orient_.y() << " z: " << target_orient_.z() << " w: " << target_orient_.w());
-	ROS_INFO_STREAM("angle between two quaternions " << angle_) ;
-	ROS_INFO_STREAM("inter_orient_  x: " << inter_orient_.x() << " y: " << inter_orient_.y() << " z: " << inter_orient_.x() << " w: " << inter_orient_.w());
-
-
-
 	pose_.position.x = const_position_(0);
     pose_.position.y = const_position_(1);
     pose_.position.z = const_position_(2);
