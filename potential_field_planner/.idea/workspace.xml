@@ -26,11 +26,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c7dd7437-c7fa-4468-bb38-89a8b529cc48" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../cubic_polynomial_planner/src/cubic_polynomial_planner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../cubic_polynomial_planner/src/cubic_polynomial_planner.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../dynamic_controller/config/dynamic_controller_params.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../dynamic_controller/config/dynamic_controller_params.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="c7dd7437-c7fa-4468-bb38-89a8b529cc48" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
