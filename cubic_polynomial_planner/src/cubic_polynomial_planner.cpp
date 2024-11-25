@@ -137,7 +137,7 @@ void CUBIC::computeOrientation() {
 
 	pose_.position.x = default_pose_.position.x;
     pose_.position.y = default_pose_.position.y;
-    pose_.position.z = default_pose_.position.z;
+    pose_.position.z = default_pose_ .position.z;
     pose_.orientation = tf2::toMsg(inter_orient_);
     pose_pub_.publish(pose_);
 
