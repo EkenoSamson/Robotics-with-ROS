@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
 		roscpp
 		std_msgs
 		geometry_msgs
+		actionlib
 		highlevel_msgs
 		message_generation  					# Required to generate custom messages and services
 		tf2										# Transformation system
@@ -25,7 +26,7 @@ catkin_package(
 		LIBRARIES cubic_polynomial_planner  							# Library to link with your source code
 		CATKIN_DEPENDS
 					geometry_msgs roscpp std_msgs tf2
-					highlevel_msgs message_runtime  	# Packages needed at runtime
+					highlevel_msgs actionlib message_runtime 	# Packages needed at runtime
 		DEPENDS
 )
 
@@ -64,6 +65,14 @@ target_link_libraries(pose_planner
 		${catkin_LIBRARIES}  						# Link the catkin libraries to the executable
 )
 
+add_executable(action_server
+		src/pose_command_server_main.cpp
+		src/pose_command_server.cpp
+)
+target_link_libraries(action_server
+		cubic_polynomial_planner
+		${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############

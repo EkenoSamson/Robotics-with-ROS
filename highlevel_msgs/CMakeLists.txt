@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
 		roscpp  							# ROS C++ client library
 		std_msgs  							# Standard ROS message types
 		message_generation  				# Required to generate custom messages and services
+		actionlib_msgs						# For generating ROS action types
 )
 
 ################################################
@@ -23,11 +24,18 @@ add_service_files(
 		SetKD.srv							# for setting stiffness and damping
 )
 
+# Generate actions from action files
+add_action_files(
+		DIRECTORY action
+		FILES PoseCommand.action
+)
+
 ## Generate added messages and services
 ## 'std_msgs' dependency is required here because we're using standard message types in our service(float64 and bool)
 generate_messages(
 		DEPENDENCIES
 		std_msgs  							# std_msgs is included because we're using float64 and bool
+		actionlib_msgs
 )
 
 ###################################
@@ -40,7 +48,7 @@ catkin_package(
 		INCLUDE_DIRS
 		LIBRARIES
 		CATKIN_DEPENDS
-			roscpp std_msgs message_runtime  # Dependencies needed at runtime
+			roscpp std_msgs message_runtime actionlib_msgs # Dependencies needed at runtime
 		DEPENDS
 )
 

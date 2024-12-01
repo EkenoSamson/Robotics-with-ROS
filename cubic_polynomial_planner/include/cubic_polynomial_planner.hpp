@@ -103,4 +103,15 @@ class CUBIC
 
 };
 
+
+
+///* poseCommandServer */
+//#include <actionlib/server/simple_action_server.h>        // provides the SimpleActionServer class
+//#include <highlevel_msgs/PoseCommandAction.h>			  // custom action
+//
+//class poseCommandServer
+//{
+//
+//};
+
 #endif /*CUBIC_POLYNOMIAL_PLANNER_HPP*/

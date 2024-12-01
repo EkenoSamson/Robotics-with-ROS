@@ -16,6 +16,9 @@
   <!-- Runtime and build dependencies -->
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
+  <depend>actionlib</depend>
+  <depend>eigen3</depend>
+  <depend>highlevel_msgs</depend>
   <depend>dynamic_controller</depend>
 
   <!-- Include ROS message generation dependencies -->

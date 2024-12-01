@@ -1,0 +1,18 @@
+# Goal definition
+float64 x               # target x position
+float64 y               # target y position
+float64 z               # target z position
+float64 roll            # target roll
+float64 pitch           # target pitch
+float64 yaw             # target yaw
+float64 T               # target time
+
+---
+# Result definition
+string message
+
+---
+# Feedback
+float64 distance_translation        # Euclidean distance between target and feedback translation
+float64 distance_orientation        # Angle between target and feedback orientation
+float64 time_elapsed                # Time elapsed since the action call

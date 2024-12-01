@@ -1,0 +1,12 @@
+<launch>
+    <!--Loading YAML files-->
+    <rosparam command="load" file="$(find highlevel_controller)/config/a6.yaml"/>
+    <rosparam command="load" file="$(find kortex_gazebo)/config/gen3_dynamics.yaml"/>
+
+    <!--controller-->
+    <include file="$(find dynamic_controller)/launch/pose_controller.launch"/>
+
+    <!--the actions-->
+    <node name="action_client" pkg="highlevel_controller" type="action_client" output="screen"/>
+    <node name="action_server" pkg="cubic_polynomial_plannner" type="action_server" output="screen"/>
+</launch>

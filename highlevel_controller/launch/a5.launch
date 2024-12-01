@@ -2,9 +2,11 @@
     <!--Load the YAML file from this package-->
     <rosparam command="load" file="$(find highlevel_controller)/config/a5.yaml"/>
 
+    <!--Load the parameters for the controller from the YAML file-->
+    <rosparam command="load" file="$(find kortex_gazebo)/config/gen3_dynamics.yaml"/>
+
     <!--Include the controller (Launching)-->
     <include file="$(find dynamic_controller)/launch/pose_controller.launch"/>
 
-    <!--Load the parameters for the controller from the YAML file-->
-    <rosparam command="load" file="$(find kortex_gazebo)/config/gen3_dynamics.yaml"/>
+
 </launch>
