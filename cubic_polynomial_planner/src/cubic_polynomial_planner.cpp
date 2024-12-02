@@ -213,17 +213,14 @@ void CUBIC::pubDefaultTransformation() {
 
   // Set orientation to quaternion
   default_pose_.orientation = tf2::toMsg(default_quat_);
-//  default_pose_.orientation.x = default_quat_.x();
-//  default_pose_.orientation.y = default_quat_.y();
-//  default_pose_.orientation.z = default_quat_.z();
-//  default_pose_.orientation.w = default_quat_.w();
+
 
   pose_pub_.publish(default_pose_);
 
   // Debugging: Print the pose being published
-  ROS_INFO("Pose: Position [x: %f, y: %f, z: %f], Orientation [x: %f, y: %f, z: %f, w: %f]",
-              default_pose_.position.x, default_pose_.position.y, default_pose_.position.z,
-              default_pose_.orientation.x, default_pose_.orientation.y, default_pose_.orientation.z, default_pose_.orientation.w);
+//  ROS_INFO("Pose: Position [x: %f, y: %f, z: %f], Orientation [x: %f, y: %f, z: %f, w: %f]",
+//              default_pose_.position.x, default_pose_.position.y, default_pose_.position.z,
+//              default_pose_.orientation.x, default_pose_.orientation.y, default_pose_.orientation.z, default_pose_.orientation.w);
 
 
     default_twist_.linear.x = 0.0;

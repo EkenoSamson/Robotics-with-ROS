@@ -8,5 +8,5 @@
 
     <!--the actions-->
     <node name="action_client" pkg="highlevel_controller" type="action_client" output="screen"/>
-    <node name="action_server" pkg="cubic_polynomial_plannner" type="action_server" output="screen"/>
+    <node name="action_server" pkg="cubic_polynomial_planner" type="action_server" output="screen"/>
 </launch>

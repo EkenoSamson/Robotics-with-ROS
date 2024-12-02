@@ -18,6 +18,9 @@ bool ActionClient::read_parameters() {
     ROS_ERROR("Failed to read number_of_targets.");
     return false;
   }
+  // Debug print the current target path
+  ROS_INFO_STREAM("Read number of target: " << NUM_TARGETS_ + "/translation");
+
 
   // Allocate space for translation and orientation
   target_translation_ = Eigen::MatrixXd(NUM_TARGETS_, 3);
@@ -25,7 +28,11 @@ bool ActionClient::read_parameters() {
   target_duration_ = Eigen::VectorXd(NUM_TARGETS_);
 
   for (int i = 0; i < NUM_TARGETS_; i++) {
-    std::string target_name_ = "action_list_" + std::to_string(i);
+    std::string target_name_ = "action_list/action_" + std::to_string(i);
+
+    // Debug print the current target path
+    ROS_INFO_STREAM("Reading translation for target: " << target_name_ + "/translation");
+
 
     // read the translation
     std::vector<double> translation_;
@@ -37,6 +44,9 @@ bool ActionClient::read_parameters() {
     // store translation
     for (int j = 0; j < 3; j++)
         target_translation_(i, j) = translation_[j];
+
+    // Debug print the current target path
+    ROS_INFO_STREAM("Reading translation for target: " << target_name_ + "/orientation");
 
     // read the orientation
     std::vector<double> orientation_;
@@ -58,7 +68,7 @@ bool ActionClient::read_parameters() {
     // store the duration
     target_duration_(i) = duration_;
   }
-  ROS_INFO_STREAM("Parameters loaded: " << NUM_TARGETS_ << " targets.");
+  ROS_INFO_STREAM("[ActionClient::read_parameter]Parameters loaded:");
   return true;
 }
 
@@ -77,7 +87,9 @@ void ActionClient::update() {
     move_to_goal_.T = target_duration_(counter);
 
     // wait for the server
+    ROS_INFO_STREAM("Waiting for action server...");
     move_to_action_client_.waitForServer();
+    ROS_INFO_STREAM("Connected to action server.");
 
     // send the goal to the server
     move_to_action_client_.sendGoal(move_to_goal_,

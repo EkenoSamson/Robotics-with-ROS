@@ -311,7 +311,7 @@ bool TaskSpaceDyn::setJointPDServiceCallback2(highlevel_msgs::SetKD::Request &re
 
 void TaskSpaceDyn::update() {
   // Compute general dynamics
-  ROS_INFO("Computing Task Space Dynamics");
+  //ROS_INFO("Computing Task Space Dynamics");
   pinocchio::computeAllTerms(model_, data_, jts_fbk_positions_, jts_fbk_velocities_);
   M_ = data_.M;  // Mass Matrix
   h_ = data_.nle;  // Nonlinear Effector Vector
@@ -320,7 +320,7 @@ void TaskSpaceDyn::update() {
   pinocchio::getJointJacobian(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_);
   pinocchio::getJointJacobianTimeVariation(model_, data_, hand_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, jacobian_dot_);
 
-  ROS_INFO("Hand ID: %d", hand_id_);
+  //ROS_INFO("Hand ID: %d", hand_id_);
 
   // End-effector pose
   ee_fbk_position_ = data_.oMi[hand_id_].translation();
@@ -360,7 +360,7 @@ void TaskSpaceDyn::computeFullDynamics() {
   pose_error_.tail<3>() = rotation_error_;
 
   // Display the angle (Debugging)
-  std::cout << "Angle btw ref-fbk: " << ee_ref_orientation_.angularDistance(ee_fbk_orientation_) << std::endl;
+  //std::cout << "Angle btw ref-fbk: " << ee_ref_orientation_.angularDistance(ee_fbk_orientation_) << std::endl;
 
   //ROS_INFO_STREAM("Stiffness: " << end_stiffness_ << " Damping: " << end_damping_);
   ee_acc_cmd_ = ee_ref_acc_ + (end_stiffness_2_ * pose_error_) + (end_damping_2_ * twist_error_);
@@ -470,9 +470,9 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_fbk_pose.orientation.z = ee_fbk_orientation_.z();
   ee_fbk_pose.orientation.w = ee_fbk_orientation_.w();
 
-  ROS_INFO("Pose controller published (Feedback)");
-  ROS_INFO("Position [%f, %f, %f]", ee_fbk_pose.position.x, ee_fbk_pose.position.y, ee_fbk_pose.position.z);
-  ROS_INFO("Orientation [%f, %f, %f, %f]", ee_fbk_pose.orientation.x, ee_fbk_pose.orientation.y, ee_fbk_pose.orientation.z, ee_fbk_pose.orientation.w);
+//  ROS_INFO("Pose controller published (Feedback)");
+//  ROS_INFO("Position [%f, %f, %f]", ee_fbk_pose.position.x, ee_fbk_pose.position.y, ee_fbk_pose.position.z);
+//  ROS_INFO("Orientation [%f, %f, %f, %f]", ee_fbk_pose.orientation.x, ee_fbk_pose.orientation.y, ee_fbk_pose.orientation.z, ee_fbk_pose.orientation.w);
 
   end_effector_pose_pub_.publish(ee_fbk_pose);  // Publish pose
 
@@ -485,9 +485,9 @@ void TaskSpaceDyn::pubEndFeedback() {
   ee_fbk_twist.angular.y = ee_fbk_twist_(4);
   ee_fbk_twist.angular.z = ee_fbk_twist_(5);
 
-  ROS_INFO("Twist controller published (Feedback)");
-  ROS_INFO("Twist [%f, %f, %f, %f, %f, %f]", ee_fbk_twist.linear.x, ee_fbk_twist.linear.y, ee_fbk_twist.linear.z, ee_fbk_twist.angular.x,
-           ee_fbk_twist.angular.y, ee_fbk_twist.angular.z);
+//  ROS_INFO("Twist controller published (Feedback)");
+//  ROS_INFO("Twist [%f, %f, %f, %f, %f, %f]", ee_fbk_twist.linear.x, ee_fbk_twist.linear.y, ee_fbk_twist.linear.z, ee_fbk_twist.angular.x,
+//           ee_fbk_twist.angular.y, ee_fbk_twist.angular.z);
 
   end_effector_twist_pub_.publish(ee_fbk_twist);  // Publish twist
 }

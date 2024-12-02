@@ -30,7 +30,7 @@ class ActionClient {
     bool read_parameters();
 
     // variables for target
-    int NUM_TARGETS_ = 0;
+    int NUM_TARGETS_;
     Eigen::MatrixXd target_translation_;
     Eigen::MatrixXd target_orientation_;
     Eigen::VectorXd target_duration_;
