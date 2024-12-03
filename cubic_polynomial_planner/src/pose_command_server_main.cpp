@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     ros::Rate loop_rate (500) ;
     while ( ros::ok() ) {
         ros::spinOnce();
-        action_server.update() ;
+        //action_server.update() ;
         loop_rate.sleep() ;
     }
 

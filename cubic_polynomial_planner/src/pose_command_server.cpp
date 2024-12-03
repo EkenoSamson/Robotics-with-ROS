@@ -102,7 +102,7 @@ void ActionServer::move_to_callback(const highlevel_msgs::PoseCommandGoalConstPt
   ROS_DEBUG_STREAM("[ActionServer::move_to_callback] Distance Orientation: " << move_to_feedback_.distance_orientation);
   ROS_DEBUG_STREAM("[ActionServer::move_to_callback] Time Elapsed: " << move_to_feedback_.time_elapsed);
 
-  while (move_to_feedback_.distance_translation > 0.01 && move_to_feedback_.distance_orientation > 0.2) {
+  while (move_to_feedback_.time_elapsed < target_duration_) {
     ROS_INFO_STREAM("[ActionServer::move_to_callback] While loop executing...");
 //    // Perform feedback calculation inside the loop
 //    move_to_feedback_.distance_translation = (target_position_ - feedback_position_).length();
@@ -112,6 +112,8 @@ void ActionServer::move_to_callback(const highlevel_msgs::PoseCommandGoalConstPt
     // Log updated values for debugging
     ROS_DEBUG_STREAM("[ActionServer::move_to_callback] Updated feedback: distance_translation=" << move_to_feedback_.distance_translation);
     ROS_DEBUG_STREAM("[ActionServer::move_to_callback] Updated feedback: distance_orientation=" << move_to_feedback_.distance_orientation);
+    ROS_DEBUG_STREAM("[ActionServer::move_to_callback] Updated time: " << move_to_feedback_.time_elapsed);
+    ROS_DEBUG_STREAM("[ActionServer::compute_transformation] target duration: " << target_duration_);
 
     // publish feedback for the client
     move_to_action_server_.publishFeedback(move_to_feedback_);
@@ -129,27 +131,42 @@ void ActionServer::compute_transformation() {
   ROS_INFO_STREAM("[ActionServer::compute_transformation]");
   current_time_ = ros::Time::now().toSec() - starting_time_;
 
-  if (current_time_ > target_duration_) {
+  if (current_time_ > target_duration_)
     current_time_ = target_duration_;
-    target_duration_ = current_time_;
-  } else {
+//    target_duration_ = current_time_;
+//  } else {
     // scaling factors
     transform_scaling_factor_ = ((3 * pow(current_time_, 2)) / pow(target_duration_, 2)) - ((2 * pow(current_time_, 3)) / pow(target_duration_, 3));
     velocity_scaling_factor_ = ((6 * current_time_) / pow(target_duration_, 2)) - ((6 * pow(current_time_, 2)) / pow(target_duration_, 3));
+
+    // scaling factor debuggin
+    ROS_INFO_STREAM("[ActionServer::compute_transformation] transform_scaling_factor_: " << transform_scaling_factor_);
 
     // interpolation
     planned_position_ = starting_position_ + transform_scaling_factor_ * (target_position_ - starting_position_);
     planned_orientation_ = starting_orientation_.slerp(target_orientation_, transform_scaling_factor_);
     planned_velocity_ = velocity_scaling_factor_ * (target_position_ - starting_position_);
 
+    // Debugging th calculation (interpolation)
+    ROS_INFO_STREAM("[ActionServer::compute_transformation] Interpolation Calculation: Planned_Position [x: "
+        << planned_position_.x() << ", y: "
+        << planned_position_.y() << ", z: "
+        << planned_position_.z() << "], Orientation [x: "
+        << planned_orientation_.x() << ", y: "
+        << planned_orientation_.y() << ", z: "
+        << planned_orientation_.z() << ", w: "
+        << planned_orientation_.w() << "]");
+
     // feedback
-    move_to_feedback_.distance_translation = (planned_position_ - planned_position_).length();
+    move_to_feedback_.distance_translation = (target_position_ - planned_position_).length();
     move_to_feedback_.distance_orientation = target_orientation_.angleShortestPath(planned_orientation_);
     move_to_feedback_.time_elapsed = current_time_;
 
     // Log updated values for debugging
-    ROS_DEBUG_STREAM("[ActionServer::move_to_callback::compute_transformaton] Updated feedback: distance_translation=" << move_to_feedback_.distance_translation);
-    ROS_DEBUG_STREAM("[ActionServer::move_to_callback::compute_transformation] Updated feedback: distance_orientation=" << move_to_feedback_.distance_orientation);
+    ROS_DEBUG_STREAM("[ActionServer::compute_transformaton] Updated feedback: distance_translation=" << move_to_feedback_.distance_translation);
+    ROS_DEBUG_STREAM("[ActionServer::compute_transformation] Updated feedback: distance_orientation=" << move_to_feedback_.distance_orientation);
+    ROS_DEBUG_STREAM("[ActionServer::compute_transformation] updated feedback: time_elapsed=" << move_to_feedback_.time_elapsed);
+    ROS_DEBUG_STREAM("[ActionServer::compute_transformation] target duration: " << target_duration_);
 
     // publication
     reference_pose_msg_.position.x = planned_position_.x();
@@ -160,7 +177,7 @@ void ActionServer::compute_transformation() {
     //reference_twist_msg_.angular = 0.0;
 
     // messages to be published
-    ROS_INFO_STREAM("[ActionServer::compute_transformation] Pose: Position [x: "
+    ROS_INFO_STREAM("[ActionServer::compute_transformation] Reference_Pose_Message: Position [x: "
         << reference_pose_msg_.position.x << ", y: "
         << reference_pose_msg_.position.y << ", z: "
         << reference_pose_msg_.position.z << "], Orientation [x: "
@@ -171,18 +188,18 @@ void ActionServer::compute_transformation() {
 
     reference_pose_publisher_.publish(reference_pose_msg_);
     reference_twist_publisher_.publish(reference_twist_msg_);
-  }
+ // }
 }
 
 // updating
-void ActionServer::update() {
-  // This is the function that runs in the loop
-  // Add your logic here
-  if (move_to_action_server_.isActive()) {
-  ROS_INFO("Action server update called");
-  compute_transformation();
-  }
-}
+//void ActionServer::update() {
+//  // This is the function that runs in the loop
+//  // Add your logic here
+//  //if (move_to_action_server_.isActive()) {
+//  //ROS_INFO("Action server update called");
+//  //compute_transformation();
+//  //}
+//}
 
 // destructor
 ActionServer::~ActionServer() {
