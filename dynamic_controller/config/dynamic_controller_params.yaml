@@ -2,14 +2,14 @@
 # joint stiffness and damping parameters
 
 joint_stiffness: 60.0
-joint_stiffness_2: 300.0
+joint_stiffness_2: 350.0
 joint_damping: 10.0
 joint_damping_2: 25.0
 
 # Task Space
 # End-effector stiffness and damping parameters
 end_effector_stiffness: 55.0
-end_effector_stiffness_2: 250.0
+end_effector_stiffness_2: 300.0
 end_effector_damping: 20.0
 end_effector_damping_2: 15.0
 
