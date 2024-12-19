@@ -19,6 +19,7 @@
   <depend>actionlib</depend>
   <depend>eigen3</depend>
   <depend>highlevel_msgs</depend>
+  <depend>control_msgs</depend>
   <depend>dynamic_controller</depend>
 
   <!-- Include ROS message generation dependencies -->

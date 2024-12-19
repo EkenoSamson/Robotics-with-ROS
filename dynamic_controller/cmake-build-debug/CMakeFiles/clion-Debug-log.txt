@@ -1,4 +1,4 @@
-/snap/clion/305/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/305/bin/ninja/linux/x64/ninja -G Ninja -S /home/ekeno/applied-robotics-f2024/dynamic_controller -B /home/ekeno/applied-robotics-f2024/dynamic_controller/cmake-build-debug
+/snap/clion/310/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" -S /home/ekeno/applied-robotics-f2024/dynamic_controller -B /home/ekeno/applied-robotics-f2024/dynamic_controller/cmake-build-debug
 -- The C compiler identification is GNU 9.4.0
 -- The CXX compiler identification is GNU 9.4.0
 -- Detecting C compiler ABI info

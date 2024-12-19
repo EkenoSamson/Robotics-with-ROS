@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Project name
 project(highlevel_controller)
@@ -10,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_controller
         actionlib
         highlevel_msgs
+        control_msgs
 )
 find_package(Eigen3 REQUIRED)
 
@@ -22,6 +25,7 @@ catkin_package(
             message_runtime
             actionlib
             highlevel_msgs
+            control_msgs
 )
 
 include_directories(
@@ -37,5 +41,11 @@ add_executable(action_client
 
 target_link_libraries(action_client ${catkin_LIBRARIES} )
 
+add_executable(pick_and_place_client
+        src/pick_and_place_client.cpp
+        src/pick_and_place_main.cpp
+)
+
+target_link_libraries(pick_and_place_client ${catkin_LIBRARIES})
 
 

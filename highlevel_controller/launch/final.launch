@@ -1,0 +1,18 @@
+<launch>
+
+    <!--Parameters-->
+    <rosparam command="load" file="$(find highlevel_controller)/config/final.yaml"/>
+
+    <!--World-->
+    <arg name="modified_world" default="$(find highlevel_controller)/worlds/a8_modified.world"/>
+
+    <!--Launch files-->
+    <include file="$(find dynamic_controller)/launch/pose_controller.launch"/>
+    <include file="$(find kortex_gazebo)/launch/gen3_dyn_with_gripper.launch">
+        <arg name="world_name" value="$(arg modified_world)"/>
+    </include>
+
+    <!--Actions-->
+    <node name="action_server" pkg="cubic_polynomial_planner" type="action_server" output="screen"/>
+    <node name="pick_and_place_client" pkg="highlevel_controller" type="pick_and_place_client" output="screen"/>
+</launch>

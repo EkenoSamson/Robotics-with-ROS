@@ -158,6 +158,10 @@ void TaskSpaceDyn::init(std::string urdf_file_name) {
   // data structure
   data_ = pinocchio::Data(model_);
 
+  // gravity compensation
+  model_.gravity.linear() = Eigen::Vector3d(0, 0, -9.81);
+  model_.gravity.angular().setZero();
+
   // the end_effector ID
   hand_id_ = model_.getJointId("bracelet_link") - 1;
 
@@ -230,8 +234,8 @@ void TaskSpaceDyn::init(std::string urdf_file_name) {
 // Receive the joint state (current positions and velocities)
 void TaskSpaceDyn::jointStatesCallback(const sensor_msgs::JointState::ConstPtr& msg) {
   // Process joint state feedback
-  jts_fbk_positions_ = Eigen::VectorXd::Map(msg->position.data(), msg->position.size());
-  jts_fbk_velocities_ = Eigen::VectorXd::Map(msg->velocity.data(), msg->velocity.size());
+  jts_fbk_positions_ = Eigen::VectorXd::Map(msg->position.data(), msg->position.size() - 1);
+  jts_fbk_velocities_ = Eigen::VectorXd::Map(msg->velocity.data(), msg->velocity.size() - 1);
 
   //ROS_INFO(" Joint states received");
 }

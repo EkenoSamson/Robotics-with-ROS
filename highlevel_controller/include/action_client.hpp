@@ -36,7 +36,6 @@ class ActionClient {
     Eigen::VectorXd target_duration_;
     std::string action_param_name_;
 
-
 };
 
 
